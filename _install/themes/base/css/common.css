@@ -1,6 +1,6 @@
 /*
  * Author:        Pierre-Henry Soria <ph7software@gmail.com>
- * Copyright:     (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * Copyright:     (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * License:       GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  */
 
@@ -8,7 +8,7 @@ body {
     margin: 0;
     padding: 0;
     color: #555;
-    font: normal 10pt Arial, Helvetica, sans-serif;
+    font: normal 10.5pt Arial, Helvetica, sans-serif;
     background: #efefef;
 }
 
@@ -185,11 +185,18 @@ footer {
 }
 
 .img_thumb > img {
-    max-width: 100%;
     margin-right: auto;
     margin-left: auto;
 }
 
 .img_thumb, .img_thumb > img {
     border-radius: 4px;
+}
+
+img, video, iframe {
+    max-width: 100%;
+}
+
+hr {
+    border-top: 1px solid #c8c8c8;
 }

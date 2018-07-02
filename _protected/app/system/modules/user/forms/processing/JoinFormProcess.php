@@ -1,7 +1,7 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / User / Form / Processing
  */
@@ -25,7 +25,7 @@ class JoinFormProcess extends Form
     /** @var UserModel */
     private $oUserModel;
 
-    /** @var integer */
+    /** @var int */
     private $iActiveType;
 
     public function __construct()
@@ -38,7 +38,7 @@ class JoinFormProcess extends Form
 
     public function step1()
     {
-        $iAffId = (int) (new Cookie)->get(AffiliateCore::COOKIE_NAME);
+        $iAffId = (int)(new Cookie)->get(AffiliateCore::COOKIE_NAME);
 
         $aData = [
             'email' => $this->httpRequest->post('mail'),
@@ -46,10 +46,10 @@ class JoinFormProcess extends Form
             'first_name' => $this->httpRequest->post('first_name'),
             'reference' => $this->getAffiliateReference(),
             'ip' => Ip::get(),
-            'hash_validation' => Various::genRnd(),
+            'hash_validation' => Various::genRnd(null, UserCoreModel::HASH_VALIDATION_LENGTH),
             'current_date' => (new CDateTime)->get()->dateTime('Y-m-d H:i:s'),
             'is_active' => $this->iActiveType,
-            'group_id' => (int) DbConfig::getSetting('defaultMembershipGroupId'),
+            'group_id' => (int)DbConfig::getSetting('defaultMembershipGroupId'),
             'affiliated_id' => $iAffId
         ];
 
@@ -57,7 +57,7 @@ class JoinFormProcess extends Form
         $sPassword = $this->httpRequest->post('password', Http::NO_CLEAN);
         $aData += ['password' => Security::hashPwd($sPassword)];
 
-        $iTimeDelay = (int) DbConfig::getSetting('timeDelayUserRegistration');
+        $iTimeDelay = (int)DbConfig::getSetting('timeDelayUserRegistration');
         if (!$this->oUserModel->checkWaitJoin($aData['ip'], $iTimeDelay, $aData['current_date'])) {
             \PFBC\Form::setError('form_join_user', Form::waitRegistrationMsg($iTimeDelay));
         } elseif (!$iProfileId = $this->oUserModel->join($aData)) {
@@ -70,12 +70,12 @@ class JoinFormProcess extends Form
              * Update the Affiliate Commission
              * Only if the user's account is already activated
              */
-            if ($this->iActiveType == 0) {
+            if ($this->isUserActivated()) {
                 AffiliateCore::updateJoinCom($iAffId, $this->config, $this->registry);
             }
 
             // Send email
-            (new Registration)->sendMail($aData);
+            (new Registration($this->view))->sendMail($aData);
 
             $aSessData = [
                 'mail_step1' => $aData['email'],
@@ -85,7 +85,9 @@ class JoinFormProcess extends Form
             ];
             $this->session->set($aSessData);
 
-            Header::redirect(Uri::get('user','signup','step2'));
+            Header::redirect(
+                Uri::get('user', 'signup', 'step2')
+            );
         }
     }
 
@@ -117,7 +119,9 @@ class JoinFormProcess extends Form
             );
         } else {
             $this->session->set('mail_step2', $this->session->get('mail_step1'));
-            Header::redirect(Uri::get('user','signup','step3'));
+            Header::redirect(
+                Uri::get('user', 'signup', 'step3')
+            );
         }
     }
 
@@ -129,13 +133,16 @@ class JoinFormProcess extends Form
         ];
 
         if (!$this->oUserModel->exe($aData, '3')) {
-            \PFBC\Form\setError('form_join_user3',
+            \PFBC\Form::setError('form_join_user3',
                 t('An error occurred during registration!') . '<br />' .
                 t('Please try again with new information in the form fields or come back later.')
             );
         } else {
             $this->session->set('mail_step3', $this->session->get('mail_step1'));
-            Header::redirect(Uri::get('user','signup','step4'), t('Your account has just been created!'));
+            Header::redirect(
+                Uri::get('user', 'signup', 'step4'),
+                t('Your account has just been created!')
+            );
         }
     }
 
@@ -143,16 +150,25 @@ class JoinFormProcess extends Form
     {
         // If no photo added from the form, automatically skip this step
         if (empty($_FILES['avatar']['tmp_name'])) {
-            Header::redirect(Uri::get('user','signup','done'));
+            Header::redirect(
+                Uri::get('user', 'signup', 'done')
+            );
         }
 
-        $iApproved = (DbConfig::getSetting('avatarManualApproval') == 0) ? '1' : '0';
-        $bAvatar = (new UserCore)->setAvatar($this->session->get('profile_id'), $this->session->get('username'), $_FILES['avatar']['tmp_name'], $iApproved);
+        $iApproved = (DbConfig::getSetting('avatarManualApproval') == 0) ? 1 : 0;
+        $bAvatar = (new UserCore)->setAvatar(
+            $this->session->get('profile_id'),
+            $this->session->get('username'),
+            $_FILES['avatar']['tmp_name'],
+            $iApproved
+        );
 
         if (!$bAvatar) {
             \PFBC\Form::setError('form_join_user4', Form::wrongImgFileTypeMsg());
         } else {
-            Header::redirect(Uri::get('user', 'signup', 'done'));
+            Header::redirect(
+                Uri::get('user', 'signup', 'done')
+            );
         }
     }
 
@@ -166,5 +182,13 @@ class JoinFormProcess extends Form
         $this->session->remove($sVariableName);
 
         return $sRef;
+    }
+
+    /**
+     * @return bool
+     */
+    private function isUserActivated()
+    {
+        return $this->iActiveType == 1;
     }
 }

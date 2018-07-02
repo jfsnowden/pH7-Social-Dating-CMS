@@ -4,7 +4,7 @@
  * @desc             Class is used to create/manipulate images using GD library.
  *
  * @author           Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright        (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / Framework / Image
  * @version          1.1
@@ -27,6 +27,12 @@ class Image
     const PNG = IMAGETYPE_PNG;
     const GIF = IMAGETYPE_GIF;
     const WEBP = 'image/webp'; // From PHP 7.1, IMAGETYPE_WEBP is available
+
+    const DEFAULT_MAX_WIDTH = 3000;
+    const DEFAULT_MAX_HEIGHT = 3000;
+
+    const DEFAULT_IMAGE_QUALITY = 100;
+    const DEFAULT_COMPRESSION_LEVEL = 4;
 
     /** @var string */
     private $sFile;
@@ -61,7 +67,7 @@ class Image
      * @param int $iMaxWidth Default value 3000.
      * @param int $iMaxHeight Default value 3000.
      */
-    public function __construct($sFile, $iMaxWidth = 3000, $iMaxHeight = 3000)
+    public function __construct($sFile, $iMaxWidth = self::DEFAULT_MAX_WIDTH, $iMaxHeight = self::DEFAULT_MAX_HEIGHT)
     {
         $this->sFile = $sFile;
         $this->iMaxWidth = $iMaxWidth;
@@ -86,24 +92,24 @@ class Image
         } else {
             switch ($mImgType) {
                 // JPG
-                case static::JPG:
+                case self::JPG:
                     $this->rImage = imagecreatefromjpeg($this->sFile);
                     $this->sType = 'jpg';
                     break;
 
                 // PNG
-                case static::PNG:
+                case self::PNG:
                     $this->rImage = imagecreatefrompng($this->sFile);
                     $this->sType = 'png';
                     break;
 
                 // GIF
-                case static::GIF:
+                case self::GIF:
                     $this->rImage = imagecreatefromgif($this->sFile);
                     $this->sType = 'gif';
                     break;
 
-                case static::WEBP:
+                case self::WEBP:
                     $this->rImage = imagecreatefromgif($this->sFile);
                     $this->sType = 'webp';
                     break;
@@ -117,7 +123,7 @@ class Image
             $this->iHeight = imagesy($this->rImage);
 
             // Automatic resizing if the image is too large
-            if ($this->iWidth > $this->iMaxWidth OR $this->iHeight > $this->iMaxHeight) {
+            if ($this->iWidth > $this->iMaxWidth || $this->iHeight > $this->iMaxHeight) {
                 $this->dynamicResize($this->iMaxWidth, $this->iMaxHeight);
             }
 
@@ -126,13 +132,14 @@ class Image
     }
 
     /**
-     * @param int $iQ
+     * @param int $iQ From 0 (worst quality) to 100 (best quality).
      *
      * @return self
      */
-    public function quality($iQ = 100)
+    public function quality($iQ = self::DEFAULT_IMAGE_QUALITY)
     {
         $this->iQuality = $iQ;
+
         return $this;
     }
 
@@ -141,9 +148,10 @@ class Image
      *
      * @return self
      */
-    public function compression($iC = 4)
+    public function compression($iC = self::DEFAULT_COMPRESSION_LEVEL)
     {
         $this->iCompression = $iC;
+
         return $this;
     }
 
@@ -156,10 +164,10 @@ class Image
     public function resize($iX = null, $iY = null)
     {
         if (!$iX) {
-            // Width not given
+            // If width is not given
             $iX = $this->iWidth * ($iY / $this->iHeight);
         } elseif (!$iY) {
-            // Height not given
+            // If height is not given
             $iY = $this->iHeight * ($iX / $this->iWidth);
         }
 
@@ -201,15 +209,15 @@ class Image
      */
     public function dynamicResize($iNewWidth, $iNewHeight)
     {
-        if ($iNewHeight > $iNewWidth OR ($iNewHeight == $iNewWidth AND $this->iHeight < $this->iWidth)) {
+        if ($iNewHeight > $iNewWidth || ($iNewHeight == $iNewWidth && $this->iHeight < $this->iWidth)) {
             // Taller image
-            $this->resize(NULL, $iNewHeight);
+            $this->resize(null, $iNewHeight);
 
             $iW = ($iNewWidth - $this->iWidth) / -2;
             $this->crop($iW, 0, $iNewWidth, $iNewHeight);
         } else {
             // Wider image
-            $this->resize($iNewWidth, NULL);
+            $this->resize($iNewWidth, null);
 
             $iY = ($iNewHeight - $this->iHeight) / -2;
             $this->crop(0, $iY, $iNewWidth, $iNewHeight);
@@ -329,38 +337,38 @@ class Image
      *
      * @return self
      */
-     public function watermarkText($sText, $iSize)
-     {
-         $iWidthText = $this->iWidth-imagefontwidth($iSize)*mb_strlen($sText)-3;
-         $iHeightText = $this->iHeight-imagefontheight($iSize)-3;
+    public function watermarkText($sText, $iSize)
+    {
+        $iWidthText = $this->iWidth - imagefontwidth($iSize) * mb_strlen($sText) - 3;
+        $iHeightText = $this->iHeight - imagefontheight($iSize) - 3;
 
-         $rWhite = imagecolorallocate($this->rImage, 255, 255, 255);
-         $rBlack = imagecolorallocate($this->rImage, 0, 0, 0);
-         $rGray = imagecolorallocate($this->rImage, 127, 127, 127);
+        $rWhite = imagecolorallocate($this->rImage, 255, 255, 255);
+        $rBlack = imagecolorallocate($this->rImage, 0, 0, 0);
+        $rGray = imagecolorallocate($this->rImage, 127, 127, 127);
 
-         if ($iWidthText > 0 && $iHeightText > 0) {
-             if (imagecolorat($this->rImage, $iWidthText, $iHeightText) > $rGray) {
-                 $rColor = $rBlack;
-             }
-             if (imagecolorat($this->rImage, $iWidthText, $iHeightText) < $rGray) {
-                 $rColor = $rWhite;
-             }
-         } else {
-             $rColor = $rWhite;
-         }
+        if ($iWidthText > 0 && $iHeightText > 0) {
+            if (imagecolorat($this->rImage, $iWidthText, $iHeightText) > $rGray) {
+                $rColor = $rBlack;
+            }
+            if (imagecolorat($this->rImage, $iWidthText, $iHeightText) < $rGray) {
+                $rColor = $rWhite;
+            }
+        } else {
+            $rColor = $rWhite;
+        }
 
-         imagestring($this->rImage, $iSize, $iWidthText-1, $iHeightText-1, $sText, $rWhite-$rColor);
-         imagestring($this->rImage, $iSize, $iWidthText+1, $iHeightText+1, $sText, $rWhite-$rColor);
-         imagestring($this->rImage, $iSize, $iWidthText-1, $iHeightText+1, $sText, $rWhite-$rColor);
-         imagestring($this->rImage, $iSize, $iWidthText+1, $iHeightText-1, $sText, $rWhite-$rColor);
-         imagestring($this->rImage, $iSize, $iWidthText-1, $iHeightText, $sText, $rWhite-$rColor);
-         imagestring($this->rImage, $iSize, $iWidthText+1, $iHeightText, $sText, $rWhite-$rColor);
-         imagestring($this->rImage, $iSize, $iWidthText, $iHeightText-1, $sText, $rWhite-$rColor);
-         imagestring($this->rImage, $iSize, $iWidthText, $iHeightText+1, $sText, $rWhite-$rColor);
-         imagestring($this->rImage, $iSize, $iWidthText, $iHeightText, $sText, $rColor);
+        imagestring($this->rImage, $iSize, $iWidthText - 1, $iHeightText - 1, $sText, $rWhite - $rColor);
+        imagestring($this->rImage, $iSize, $iWidthText + 1, $iHeightText + 1, $sText, $rWhite - $rColor);
+        imagestring($this->rImage, $iSize, $iWidthText - 1, $iHeightText + 1, $sText, $rWhite - $rColor);
+        imagestring($this->rImage, $iSize, $iWidthText + 1, $iHeightText - 1, $sText, $rWhite - $rColor);
+        imagestring($this->rImage, $iSize, $iWidthText - 1, $iHeightText, $sText, $rWhite - $rColor);
+        imagestring($this->rImage, $iSize, $iWidthText + 1, $iHeightText, $sText, $rWhite - $rColor);
+        imagestring($this->rImage, $iSize, $iWidthText, $iHeightText - 1, $sText, $rWhite - $rColor);
+        imagestring($this->rImage, $iSize, $iWidthText, $iHeightText + 1, $sText, $rWhite - $rColor);
+        imagestring($this->rImage, $iSize, $iWidthText, $iHeightText, $sText, $rColor);
 
-         return $this;
-     }
+        return $this;
+    }
 
     /**
      * Save an image.
@@ -462,26 +470,14 @@ class Image
     }
 
     /**
-     * Remove the attributes, temporary file and memory resources.
+     * Remove temporary file.
      */
     public function __destruct()
     {
-        // Remove the temporary image
+        // If it exists, remove the temporary image file
         (new File)->deleteFile($this->sFile);
 
         // Free the memory associated with the image
         @imagedestroy($this->rImage);
-
-        unset(
-            $this->sFile,
-            $this->sType,
-            $this->rImage,
-            $this->iWidth,
-            $this->iHeight,
-            $this->iMaxWidth,
-            $this->iMaxHeight,
-            $this->iQuality,
-            $this->iCompression
-        );
     }
 }

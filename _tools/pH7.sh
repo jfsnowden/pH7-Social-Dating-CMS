@@ -5,8 +5,8 @@
 # Description:     To work correctly, you have to execute this script when you're in the project root with your terminal (generally the parent folder of "_tools/").
 #                  (e.g., you@you:/path/to/root-project$ bash _tools/pH7.sh).
 #
-# Author:          Pierre-Henry Soria <ph7software@gmail.com>
-# Copyright:       (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+# Author:          Pierre-Henry Soria <hello@ph7cms.com>
+# Copyright:       (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
 # License:         GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
 ##
 
@@ -91,7 +91,7 @@ function remove-log-file() {
 function clean-code() {
     _confirm "Are you sure you want to clean up the code?"
     if [ $? -eq 1 ]; then
-        accepted_ext="-name '*.php' -or -name '*.css' -or -name '*.js' -or -name '*.html' -or -name '*.xml' -or -name '*.xsl' -or -name '*.xslt' -or -name '*.json' -or -name '*.yml' -or -name '*.tpl' -or -name '*.phs' -or -name '*.ph7' -or -name '*.sh' -or -name '*.sql' -or -name '*.ini' -or -name '*.md' -or -name '*.markdown' -or -name '.htaccess'"
+        accepted_ext="-name '*.php' -or -name '*.css' -or -name '*.js' -or -name '*.html' -or -name '*.xml' -or -name '*.xsl' -or -name '*.xslt' -or -name '*.svg' -or -name '*.json' -or -name '*.yml' -or -name '*.tpl' -or -name '*.phs' -or -name '*.ph7' -or -name '*.sh' -or -name '*.sql' -or -name '*.ini' -or -name '*.md' -or -name '*.markdown' -or -name '.htaccess'"
         exec="find . -type f \( $accepted_ext \) -print0 | xargs -0 perl -wi -pe"
         eval "$exec 's/\s+$/\n/'"
         eval "$exec 's/\t/    /g'"
@@ -155,14 +155,13 @@ function file-strict-permissions() {
 # Push the project into GitHub and Bitbucket repos
 function save-code() {
     # Bitbucket repo
-    git remote rm origin
-    git remote add origin git@bitbucket.org:pH_7/ph7cms-social-dating-app-site-builder.git
-    git push
+    _save-project-to-repo git@bitbucket.org:pH_7/ph7cms-social-dating-app-site-builder.git
+
+    # GitLab repo
+    _save-project-to-repo git@gitlab.com:pH-7/pH7CMS.git
 
     # GitHub repo
-    git remote rm origin
-    git remote add origin git@github.com:pH7Software/pH7-Social-Dating-CMS.git
-    git push
+    _save-project-to-repo git@github.com:pH7Software/pH7-Social-Dating-CMS.git
 
     echo "Yaaay! Changes successfully saved into remote repos!"
 }
@@ -210,25 +209,32 @@ extra_empty_lines,encoding
     find . -type f -name "*.php" -exec php $cs_script fix {} --fixers=$indents \;
 }
 
-# CHange permissions of the folders/files (CHMOD)
+# Change permissions of the folders/files (CHMOD)
 function _permissions() {
     find . -type f -print0 | sudo xargs -0 chmod $1 # First parameter for Files
     find . -type d -print0 | sudo xargs -0 chmod $2 # Second parameter for Folders
 
     sudo chmod 777 ./
-    sudo chmod 777 -R ./_install/*
-    sudo chmod 777 -R ./_repository/module/*
-    sudo chmod 777 -R ./_repository/upgrade/*
-    sudo chmod 777 -R ./_protected/app/configs/*
-    sudo chmod 777 -R ./_protected/data/backup/*
-    sudo chmod 777 -R ./_protected/data/tmp/*
-    sudo chmod 777 -R ./_protected/data/log/*
+    sudo chmod -R 777 ./_install/*
+    sudo chmod -R 777 ./_repository/module/*
+    sudo chmod -R 777 ./_repository/upgrade/*
+    sudo chmod -R 777 ./_protected/app/configs/*
+    sudo chmod -R 777 ./_protected/data/backup/*
+    sudo chmod -R 777 ./_protected/data/tmp/*
+    sudo chmod -R 777 ./_protected/data/log/*
 }
 
 # Cache permissions (CHMOD)
 function _cache-permissions() {
-    sudo chmod 777 -R ./_install/data/caches/*
-    sudo chmod 777 -R ./_protected/data/cache/*
+    sudo chmod -R 777 ./_install/data/caches/*
+    sudo chmod -R 777 ./_protected/data/cache/*
+}
+
+# Save a git project to the specified repo (e.g. github, bitbucket)
+function _save-project-to-repo() {
+    git remote rm origin
+    git remote add origin $1
+    git push
 }
 
 # Confirmation of orders entered

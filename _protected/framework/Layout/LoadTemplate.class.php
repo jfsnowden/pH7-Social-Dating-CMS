@@ -4,7 +4,7 @@
  * @desc             Loading template files.
  *
  * @author           Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright        (c) 2010-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2010-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / Framework / Layout
  */
@@ -19,8 +19,10 @@ use PH7\Framework\Registry\Registry;
 
 class LoadTemplate
 {
-    const MAX_TPL_FOLDER_LENGTH = 50;
+    const COOKIE_NAME = 'site_tpl';
     const COOKIE_LIFETIME = 172800;
+    const REQUEST_PARAM_NAME = 'tpl';
+    const MAX_TPL_FOLDER_LENGTH = 50;
 
     /** @var Config */
     private $oConfig;
@@ -43,17 +45,8 @@ class LoadTemplate
     public function __construct()
     {
         $this->oConfig = Config::getInstance();
-        $oCookie = new Cookie;
 
-        // Check a template name has been entered and if it exceeds the maximum length (49 characters).
-        if (!empty($_REQUEST['tpl']) && strlen($_REQUEST['tpl']) < static::MAX_TPL_FOLDER_LENGTH) {
-            $this->sUserTpl = $_REQUEST['tpl'];
-            $oCookie->set('site_tpl', $this->sUserTpl, static::COOKIE_LIFETIME);
-        } elseif ($oCookie->exists('site_tpl')) {
-            $this->sUserTpl = $oCookie->get('site_tpl');
-        }
-
-        unset($oCookie);
+        $this->initializeUserTplOverride();
     }
 
     /**
@@ -117,7 +110,12 @@ class LoadTemplate
         } elseif ($this->oConfig->load(PH7_PATH_TPL . PH7_DEFAULT_THEME . PH7_DS . PH7_CONFIG . PH7_CONFIG_FILE)) {
             $this->sTplName = PH7_DEFAULT_THEME;
         } else {
-            throw new Exception('Template file not found! File: \'' . PH7_PATH_TPL . PH7_DEFAULT_THEME . PH7_DS . PH7_CONFIG . PH7_CONFIG_FILE . '\' doesn\'t exist.');
+            throw new Exception(
+                sprintf(
+                    "Template file not found! File: %s doesn't exist.",
+                    PH7_PATH_TPL . PH7_DEFAULT_THEME . PH7_DS . PH7_CONFIG . PH7_CONFIG_FILE
+                )
+            );
         }
 
         return $this;
@@ -139,7 +137,12 @@ class LoadTemplate
         } elseif ($this->oConfig->load($oRegistry->path_module_views . PH7_DEFAULT_TPL_MOD . PH7_DS . PH7_CONFIG . PH7_CONFIG_FILE)) {
             $this->sModTplName = PH7_DEFAULT_TPL_MOD;
         } else {
-            throw new Exception('Module template file not found! File: \'' . $oRegistry->path_module_views . PH7_DEFAULT_TPL_MOD . PH7_DS . PH7_CONFIG . PH7_CONFIG_FILE . '\' doesn\'t exist.');
+            throw new Exception(
+                sprintf(
+                    "Module template file not found! File: %s doesn't exist.",
+                    $oRegistry->path_module_views . PH7_DEFAULT_TPL_MOD . PH7_DS . PH7_CONFIG . PH7_CONFIG_FILE
+                )
+            );
         }
 
         unset($oRegistry);
@@ -161,9 +164,39 @@ class LoadTemplate
         } elseif ($this->oConfig->load(PH7_PATH_SYS . 'global' . PH7_DS . PH7_VIEWS . PH7_DEFAULT_THEME . PH7_DS . PH7_CONFIG . PH7_CONFIG_FILE)) {
             $this->sMailTplName = PH7_DEFAULT_THEME;
         } else {
-            throw new Exception('Mail template file not found! File: \'' . PH7_PATH_SYS . 'global' . PH7_DS . PH7_VIEWS . PH7_DEFAULT_THEME . PH7_DS . PH7_CONFIG . PH7_CONFIG_FILE . '\' doesn\'t exist.');
+            throw new Exception(
+                sprintf(
+                    "Mail template file not found! File: %s doesn't exist.",
+                    PH7_PATH_SYS . 'global' . PH7_DS . PH7_VIEWS . PH7_DEFAULT_THEME . PH7_DS . PH7_CONFIG . PH7_CONFIG_FILE
+                )
+            );
         }
 
         return $this;
+    }
+
+    private function initializeUserTplOverride()
+    {
+        $oCookie = new Cookie;
+
+        if ($this->isTplParamSet()) {
+            $this->sUserTpl = $_REQUEST[self::REQUEST_PARAM_NAME];
+            $oCookie->set(self::COOKIE_NAME, $this->sUserTpl, static::COOKIE_LIFETIME);
+        } elseif ($oCookie->exists(self::COOKIE_NAME)) {
+            $this->sUserTpl = $oCookie->get(self::COOKIE_NAME);
+        }
+
+        unset($oCookie);
+    }
+
+    /**
+     * Check if a template name has been specified and if it doesn't exceed the maximum length (50 characters).
+     *
+     * @return bool
+     */
+    private function isTplParamSet()
+    {
+        return !empty($_REQUEST[self::REQUEST_PARAM_NAME]) &&
+            strlen($_REQUEST[self::REQUEST_PARAM_NAME]) <= static::MAX_TPL_FOLDER_LENGTH;
     }
 }

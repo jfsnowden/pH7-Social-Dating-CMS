@@ -4,7 +4,7 @@
  * @desc             Some useful methods of dates, formatting managements of time relative to the language.
  *
  * @author           Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright        (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / Framework / Date
  * @version          1.2
@@ -23,27 +23,29 @@ class CDateTime
     const DEFAULT_DATE_FORMAT = 'Y-m-d H:i:s';
 
     /** @var Config */
-    private $_oConfig;
+    private $oConfig;
 
     /** @var DateTime */
-    private $_oDateTime;
+    private $oDateTime;
 
     public function __construct()
     {
-        $this->_oConfig = Config::getInstance();
+        $this->oConfig = Config::getInstance();
     }
 
     /**
      * Get, initialization method.
      *
-     * @param string|integer $mTime If specified, you must enter a date/timestamp, otherwise it's the current time.
+     * @param string|int|null $mTime If specified, you must enter a date/timestamp, otherwise it's the current time.
+     * @param string|null $mTimeZone If leave null, it will give the timezone set in the lang config.ini file.
      *
-     * @return CDateTime
+     * @return self
      */
-    public function get($mTime = null)
+    public function get($mTime = null, $mTimeZone = null)
     {
         $sSetTime = $mTime !== null ? date(self::DEFAULT_DATE_FORMAT, (!is_numeric($mTime) ? strtotime($mTime) : $mTime)) : 'now';
-        $this->_oDateTime = new DateTime($sSetTime, new DateTimeZone($this->_oConfig->values['language.application']['timezone']));
+        $sSetTimeZone = $mTimeZone !== null ? $mTimeZone : $this->oConfig->values['language.application']['timezone'];
+        $this->oDateTime = new DateTime($sSetTime, new DateTimeZone($sSetTimeZone));
 
         return $this;
     }
@@ -57,9 +59,9 @@ class CDateTime
      */
     public function dateTime($sFormat = null)
     {
-        $sFormat = ($sFormat === null) ? $this->_oConfig->values['language.application']['date_time_format'] : $sFormat;
+        $sFormat = $sFormat === null ? $this->oConfig->values['language.application']['date_time_format'] : $sFormat;
 
-        return $this->_oDateTime->format($sFormat);
+        return $this->oDateTime->format($sFormat);
     }
 
     /**
@@ -71,9 +73,9 @@ class CDateTime
      */
     public function date($sFormat = null)
     {
-        $sFormat = ($sFormat === null) ? $this->_oConfig->values['language.application']['date_format'] : $sFormat;
+        $sFormat = $sFormat === null ? $this->oConfig->values['language.application']['date_format'] : $sFormat;
 
-        return $this->_oDateTime->format($sFormat);
+        return $this->oDateTime->format($sFormat);
     }
 
     /**
@@ -85,8 +87,8 @@ class CDateTime
      */
     public function time($sFormat = null)
     {
-        $sFormat = ($sFormat === null) ? $this->_oConfig->values['language.application']['time_format'] : $sFormat;
+        $sFormat = $sFormat === null ? $this->oConfig->values['language.application']['time_format'] : $sFormat;
 
-        return $this->_oDateTime->format($sFormat);
+        return $this->oDateTime->format($sFormat);
     }
 }

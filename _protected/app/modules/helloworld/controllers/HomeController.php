@@ -3,7 +3,7 @@
  * This module is just an example to show how easy you can create modules with pH7CMS
  *
  * @author           Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright        (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / App / Module / Hello World / Controller
  */
@@ -33,7 +33,7 @@ class HomeController extends Controller
         /* H TITLE html tag H1 to H4 */
         $this->view->h1_title = t('Example of a simple module that displays "Hello World"');
         $this->view->h3_title = t('H3 title example');
-        $this->view->desc = t('Hello world %0% %1%, how are you on %2%?', $this->str->upperFirst($sFirstName), $this->str->upperFirst($sLastName), $this->dateTime->get()->date('Y-m-d'));
+        $this->view->desc = t('Hello %0% %1% How are you on this %2%?', $this->str->upperFirst($sFirstName), $this->str->upperFirst($sLastName), $this->dateTime->get()->date('l'));
 
         // Display the page
         $this->output();

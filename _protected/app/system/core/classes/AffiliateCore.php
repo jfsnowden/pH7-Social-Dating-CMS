@@ -1,7 +1,7 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Core / Class
  */
@@ -30,7 +30,9 @@ class AffiliateCore extends UserCore
     public static function auth()
     {
         $oSession = new Session;
-        $bIsConnected = ((int)$oSession->exists('affiliate_id')) && $oSession->get('affiliate_ip') === Ip::get() && $oSession->get('affiliate_http_user_agent') === (new Browser)->getUserAgent();
+        $bIsConnected = ((int)$oSession->exists('affiliate_id')) &&
+            $oSession->get('affiliate_ip') === Ip::get() &&
+            $oSession->get('affiliate_http_user_agent') === (new Browser)->getUserAgent();
         unset($oSession);
 
         return $bIsConnected;
@@ -49,8 +51,9 @@ class AffiliateCore extends UserCore
     public function setAuth(stdClass $oAffData, UserCoreModel $oAffModel, Session $oSession, SecurityModel $oSecurityModel)
     {
         // Remove the session if the affiliate is logged on as "user" or "affiliate".
-        if (UserCore::auth() || AdminCore::auth())
+        if (UserCore::auth() || AdminCore::auth()) {
             $oSession->destroy();
+        }
 
         // Regenerate the session ID to prevent session fixation attack
         $oSession->regenerateId();
@@ -67,8 +70,14 @@ class AffiliateCore extends UserCore
         ];
 
         $oSession->set($aSessionData);
-        $oSecurityModel->addLoginLog($oAffData->email, $oAffData->username, '*****', 'Logged in!', 'Affiliates');
-        $oAffModel->setLastActivity($oAffData->profileId, 'Affiliates');
+        $oSecurityModel->addLoginLog(
+            $oAffData->email,
+            $oAffData->username,
+            '*****',
+            'Logged in!',
+            DbTableName::AFFILIATE
+        );
+        $oAffModel->setLastActivity($oAffData->profileId, DbTableName::AFFILIATE);
     }
 
     /**
@@ -92,16 +101,20 @@ class AffiliateCore extends UserCore
      */
     public static function updateJoinCom($iAffId, Config $oConfig, Registry $oRegistry)
     {
-        if ($iAffId < 1) return; // If there is no valid ID, we stop the method.
+        if ($iAffId < 1) {
+            // If there is no valid ID, we stop the method
+            return;
+        }
 
         // Load the Affiliate config file
         $oConfig->load(PH7_PATH_SYS_MOD . 'affiliate' . PH7_DS . PH7_CONFIG . PH7_CONFIG_FILE);
 
-        $sType = ($oRegistry->module == 'newsletter' ? 'newsletter' : ($oRegistry->module == 'affiliate' ? 'affiliate' : 'user'));
+        $sType = ($oRegistry->module == 'newsletter' ? 'newsletter' : ($oRegistry->module === 'affiliate' ? 'affiliate' : 'user'));
         $iAffCom = $oConfig->values['module.setting']['commission.join_' . $sType . '_money'];
 
-        if ($iAffCom > 0)
+        if ($iAffCom > 0) {
             (new AffiliateCoreModel)->updateUserJoinCom($iAffId, $iAffCom);
+        }
     }
 
     /**

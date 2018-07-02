@@ -6,13 +6,19 @@
                 {{ $relative_url = Framework\Mvc\Router\Uri::get('comment','comment','read',"$table,$com->recipient") . '#' . $com->commentId }}
 
                 {{ $avatarDesign->get($com->username, $com->firstName, $com->sex, 32) }}
-                {{ $comment = nl2br(Framework\Parse\User::atUsernameToLink(Framework\Parse\Emoticon::init(escape($this->str->extract(Framework\Security\Ban\Ban::filterWord($com->comment)), true)))) }}
+                {{ $comment = nl2br(
+                    Framework\Parse\User::atUsernameToLink(
+                        Framework\Parse\Emoticon::init(
+                            escape($this->str->extract(Framework\Security\Ban\Ban::filterWord($com->comment)), true)
+                        )
+                    )
+                ) }}
 
                 <p><span class="com_txt">{comment}</span><br />
                 <a href="{absolute_url}">{lang 'See more'}</a></p>
 
                 <div class="center post-ident">
-                    <p class="small italic"><a href="{relative_url}">#</a> | {lang 'Posted on %0%', Framework\Date\Various::textTimeStamp($com->createdDate)}
+                    <p class="small italic"><a href="{relative_url}">#</a> | {lang 'Posted %0%', Framework\Date\Various::textTimeStamp($com->createdDate)}
                         {if !empty($com->updatedDate)}
                             | <span class="post-edit">{lang 'Last Edited %0%', Framework\Date\Various::textTimeStamp($com->updatedDate)}</span>
                         {/if}
@@ -30,7 +36,7 @@
         <p class="s_tMarg bold italic">
             <a href="{{ $design->url('comment','comment','add',"$table,$com->recipient") }}">{lang 'Add a comment'}</a> &nbsp;
             <a href="{{ $design->url('xml','rss','xmlrouter',"comment-$table,$com->recipient") }}">
-                <img src="{url_static_img}icon/feed.png" alt="{lang 'RSS Feed'}" />
+                <img src="{url_static_img}icon/feed.svg" alt="{lang 'RSS Feed'}" />
             </a>
         </p>
 

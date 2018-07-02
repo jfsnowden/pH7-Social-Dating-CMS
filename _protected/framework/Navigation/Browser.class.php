@@ -4,10 +4,9 @@
  * @desc             Useful Browser methods.
  *
  * @author           Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright        (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / Framework / Navigation
- * @version          1.1
  */
 
 namespace PH7\Framework\Navigation;
@@ -24,11 +23,13 @@ use PH7\Framework\Str\Str;
  */
 class Browser
 {
+    const FAVICON_GENERATOR_URL = 'https://www.google.com/s2/favicons?domain=';
+
     /**
      * Detect the user's preferred language.
      *
      * @param bool $bFullLangCode If TRUE, returns the full lang code (e.g., en-us, en-gb, en-ie, en-au, fr-fr, fr-be, fr-ca, fr-ch, ...),
-     *     otherwise returns the two letters of the client browser's language (e.g., en, it, fr, ru, ...). Default: FALSE
+     *     otherwise returns the two letters of the client browser's language (e.g., en, it, fr, ru, ...).
      *
      * @return string Client's Language Code (in lowercase).
      */
@@ -52,7 +53,6 @@ class Browser
         header('Expires: ' . gmdate('D, d M Y H:i:s', time() + 3600 * 24 * 30) . ' GMT');
         header('Cache-Control: no-cache, must-revalidate');
         header('Pragma: public'); // HTTP 1.0
-        //header ('Not Modified', true, 304);
 
         return $this;
     }
@@ -106,7 +106,9 @@ class Browser
      */
     public function isMobile()
     {
-        if (null !== Server::getVar(Server::HTTP_X_WAP_PROFILE) || null !== Server::getVar(Server::HTTP_PROFILE)) {
+        if (null !== Server::getVar(Server::HTTP_X_WAP_PROFILE) ||
+            null !== Server::getVar(Server::HTTP_PROFILE)
+        ) {
             return true;
         }
 
@@ -185,9 +187,8 @@ class Browser
      */
     public static function favicon($sUrl)
     {
-        $sApiUrl = 'https://www.google.com/s2/favicons?domain=';
         $sDomainName = Http::getHostName($sUrl);
 
-        return $sApiUrl . $sDomainName;
+        return static::FAVICON_GENERATOR_URL . $sDomainName;
     }
 }

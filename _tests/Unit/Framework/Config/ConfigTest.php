@@ -1,7 +1,7 @@
 <?php
 /**
  * @author           Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright        (c) 2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2017-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / Test / Unit / Framework / Config
  */
@@ -9,9 +9,11 @@
 namespace PH7\Test\Unit\Framework\Config;
 
 use PH7\Framework\Config\Config;
+use PHPUnit_Framework_TestCase;
 
-class ConfigTest extends \PHPUnit_Framework_TestCase
+class ConfigTest extends PHPUnit_Framework_TestCase
 {
+    /** @var Config */
     private $oConfig;
 
     protected function setUp()
@@ -20,7 +22,7 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @expectedException \PH7\Framework\Error\CException\PH7InvalidArgumentException
+     * @expectedException \PH7\Framework\Config\KeyAlreadyExistsException
      */
     public function testSetDuplicateKey()
     {
@@ -32,7 +34,7 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
     {
         $sName = 'Pierre-Henry Soria';
         $this->oConfig->setValue('name', $sName);
-        $this->assertEquals($sName, $this->oConfig->getValue('name'));
+        $this->assertSame($sName, $this->oConfig->getValue('name'));
     }
 
     public function testInvalidLoad()
@@ -47,10 +49,10 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
 
     public function testDefaultIniValues()
     {
-        $this->assertEquals('base', $this->oConfig->values['application']['default_theme']);
-        $this->assertEquals('en_US', $this->oConfig->values['application']['default_lang']);
+        $this->assertSame('base', $this->oConfig->values['application']['default_theme']);
+        $this->assertSame('en_US', $this->oConfig->values['application']['default_lang']);
         $this->oConfig->setValue('ph7cms', 'pH7 Social Dating CMS');
-        $this->assertEquals('production', $this->oConfig->values['mode']['environment']);
-        $this->assertEquals('pH7 Social Dating CMS', $this->oConfig->getValue('ph7cms'));
+        $this->assertSame('development', $this->oConfig->values['mode']['environment']);
+        $this->assertSame('pH7 Social Dating CMS', $this->oConfig->getValue('ph7cms'));
     }
- }
+}

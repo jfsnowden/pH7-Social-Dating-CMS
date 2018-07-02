@@ -4,7 +4,7 @@
  * @desc             Mail Class derived from Swift Class
  *
  * @author           Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright        (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / Framework / Mail
  * @version          1.2 (Last update 10/13/2015)
@@ -18,6 +18,8 @@ use PH7\Framework\Mvc\Model\DbConfig;
 
 class Mail
 {
+    const HTML_CONTENT_TYPE = 'text/html';
+
     /**
      * Send an email with Swift library engine.
      *
@@ -29,8 +31,8 @@ class Mail
      */
     public function send(array $aInfo, $sContents, $bHtmlFormat = true)
     {
-        // Default values
-        $sFromMail = empty($aInfo['from']) ? DbConfig::getSetting('returnEmail') : $aInfo['from']; // Email noreply (generally noreply@yoursite.com)
+        /*** Default values ***/
+        $sFromMail = empty($aInfo['from']) ? DbConfig::getSetting('returnEmail') : $aInfo['from'];
         $sFromName = empty($aInfo['form_name']) ? DbConfig::getSetting('emailName') : $aInfo['form_name'];
 
         $sToMail = empty($aInfo['to']) ? DbConfig::getSetting('adminEmail') : $aInfo['to'];
@@ -43,9 +45,14 @@ class Mail
         $oMailer = \Swift_Mailer::newInstance($oTransport);
         $oMessage = \Swift_Message::newInstance()
             ->setSubject(escape($sSubject, true))
-            ->setFrom(array(escape($sFromMail, true) => escape($sFromName, true)))
-            ->setTo(array(escape($sToMail, true) => escape($sToName, true)));
-        ($bHtmlFormat) ? $oMessage->addPart($sContents, 'text/html') : $oMessage->setBody($sContents);
+            ->setFrom([escape($sFromMail, true) => escape($sFromName, true)])
+            ->setTo([escape($sToMail, true) => escape($sToName, true)]);
+
+        if ($bHtmlFormat) {
+            $oMessage->addPart($sContents, self::HTML_CONTENT_TYPE);
+        } else {
+            $oMessage->setBody($sContents);
+        }
 
         $iResult = $oMailer->send($oMessage);
 
@@ -56,7 +63,13 @@ class Mail
          * as on some hosts config, Swift Mail doesn't work.
          */
         if (!$iResult) {
-            $aData = ['from' => $sFromMail, 'to' => $sToMail, 'subject' => $sSubject, 'body' => $sContents];
+            $aData = [
+                'from' => $sFromMail,
+                'to' => $sToMail,
+                'subject' => $sSubject,
+                'body' => $sContents
+            ];
+
             $iResult = (int)$this->phpMail($aData);
         }
 

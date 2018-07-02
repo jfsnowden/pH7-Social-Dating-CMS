@@ -1,10 +1,11 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright      (c) 2016-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2016-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / User Dashboard / Model / Design
  */
+
 namespace PH7;
 
 class UserDesignModel extends UserDesignCoreModel
@@ -24,7 +25,11 @@ class UserDesignModel extends UserDesignCoreModel
                 $sFirstName = $this->oStr->upperFirst($oRow->firstName);
                 $sCity = $this->oStr->upperFirst($oRow->city);
 
-                echo '<li><a rel="nofollow" href="', $this->oUser->getProfileSignupLink($oRow->username, $sFirstName, $oRow->sex), '"><img src="', $this->getUserAvatar($oRow->username, $oRow->sex, $iSize), '" width="', $iSize, '" height="', $iSize, '" alt="', t('Meet %0% on %site_name%', $oRow->username), '" class="avatar" /></a></li>';
+                echo '<li>
+                    <a rel="nofollow" href="', $this->oUser->getProfileSignupLink($oRow->username, $sFirstName, $oRow->sex), '">
+                        <img src="', $this->getUserAvatar($oRow->username, $oRow->sex, $iSize), '" width="', $iSize, '" height="', $iSize, '" alt="', t('Meet %0% on %site_name%', $oRow->username), '" class="avatar" />
+                    </a>
+                </li>';
             }
 
             echo '</ul>';

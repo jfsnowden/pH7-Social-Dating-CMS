@@ -1,7 +1,7 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / Lang / En US
  */
@@ -10,7 +10,7 @@ namespace PH7;
 
 defined('PH7') or exit('Restricted access');
 
-Framework\Registry\Registry::getInstance()->lang = array(
+Framework\Registry\Registry::getInstance()->lang = [
 
     /***** COUNTRIES *****/
     '' => '-- Select --',
@@ -281,6 +281,9 @@ Framework\Registry\Registry::getInstance()->lang = array(
     'hr' => 'Hrvatski',
     'rs' => 'Srpski',
     'si' => 'Slovenski',
+    'id' => 'bahasa Indonesia',
+    'hi' => 'हिन्दी',
+    'th' => 'ไทย',
 
     /***** Time Zone *****/
     '-12' => '(UTC -12:00) Eniwetok, Kwajalein',
@@ -343,4 +346,4 @@ Framework\Registry\Registry::getInstance()->lang = array(
     'businessname' => 'Business Name:',
     'taxid' => 'Tax ID, VAT or SSN:',
 
-);
+];

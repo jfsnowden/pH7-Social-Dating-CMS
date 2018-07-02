@@ -3,7 +3,7 @@
  * @title          Payment Model Class
  *
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7/ App / System / Module / Payment / Model
  * @version        1.1
@@ -24,7 +24,7 @@ class PaymentModel extends UserCoreModel
      */
     public function updateMembershipGroup($sSection, $sValue, $iGroupId)
     {
-        $this->orm->update('Memberships', $sSection, $sValue, 'groupId', $iGroupId);
+        $this->orm->update(DbTableName::MEMBERSHIP, $sSection, $sValue, 'groupId', $iGroupId);
     }
 
     /**
@@ -36,7 +36,7 @@ class PaymentModel extends UserCoreModel
      */
     public function addMembership(array $aData)
     {
-        $this->orm->insert('Memberships', $aData);
+        $this->orm->insert(DbTableName::MEMBERSHIP, $aData);
     }
 
     /**
@@ -48,6 +48,6 @@ class PaymentModel extends UserCoreModel
      */
     public function deleteMembership($iGroupId)
     {
-        $this->orm->delete('Memberships', 'groupId', $iGroupId);
+        $this->orm->delete(DbTableName::MEMBERSHIP, 'groupId', $iGroupId);
     }
 }

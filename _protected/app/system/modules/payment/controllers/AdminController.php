@@ -3,15 +3,16 @@
  * @title          Admin Controller
  *
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Payment / Controller
- * @version        1.0
  */
 
 namespace PH7;
 
+use PDOException;
 use PH7\Framework\Cache\Cache;
+use PH7\Framework\Layout\Html\Design;
 use PH7\Framework\Mvc\Router\Uri;
 use PH7\Framework\Url\Header;
 
@@ -66,13 +67,38 @@ class AdminController extends MainController
 
     public function deleteMembership()
     {
-        $this->oPayModel->deleteMembership( $this->httpRequest->post('id') );
-        /* Clean UserCoreModel Cache */
-        (new Cache)->start(UserCoreModel::CACHE_GROUP, null, null)->clear();
+        $iMembershipId = $this->httpRequest->post('id', 'int');
 
+        if (GroupId::undeletable($iMembershipId)) {
+            echo t('You cannot delete the default membership group.');
+            exit;
+        }
+
+        $bHasError = false;
+        $sMsg = t('The Membership has been removed!');
+
+        try {
+            $this->oPayModel->deleteMembership($iMembershipId);
+        } catch (PDOException $oE) {
+            $bHasError = true;
+            $sMsg = t('This one cannot be deleted.');
+        }
+
+        $this->clearCache();
         Header::redirect(
             Uri::get('payment', 'admin', 'membershiplist'),
-            t('The Membership has been removed!')
+            $sMsg,
+            ($bHasError ? Design::ERROR_TYPE : Design::SUCCESS_TYPE)
         );
+    }
+
+    /**
+     * Clean UserCoreModel cache.
+     *
+     * @return void
+     */
+    private function clearCache()
+    {
+        (new Cache)->start(UserCoreModel::CACHE_GROUP, null, null)->clear();
     }
 }

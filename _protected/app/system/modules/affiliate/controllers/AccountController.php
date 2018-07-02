@@ -1,7 +1,7 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Affiliate / Controller
  */
@@ -13,6 +13,9 @@ use PH7\Framework\Url\Header;
 
 class AccountController extends Controller
 {
+    const REDIRECTION_DELAY = 4; // In seconds
+
+    /** @var string */
     private $sTitle;
 
     public function index()
@@ -55,12 +58,17 @@ class AccountController extends Controller
         $this->view->page_title = $this->sTitle;
         $this->view->h2_title = $this->sTitle;
 
-        if ($this->httpRequest->get('delete_status') == 'yesdelete') {
+        if ($this->httpRequest->get('delete_status') === 'yesdelete') {
             $this->session->set('yes_delete', 1);
             Header::redirect(Uri::get('affiliate', 'account', 'yesdelete'));
-        } elseif ($this->httpRequest->get('delete_status') == 'nodelete') {
+        } elseif ($this->httpRequest->get('delete_status') === 'nodelete') {
             $this->view->delete_status = false;
-            $this->design->setRedirect(Uri::get('affiliate', 'home', 'index'), null, null, 4);
+            $this->design->setRedirect(
+                Uri::get('affiliate', 'home', 'index'),
+                null,
+                null,
+                self::REDIRECTION_DELAY
+            );
         } else {
             $this->view->delete_status = true;
         }
@@ -70,14 +78,25 @@ class AccountController extends Controller
 
     public function yesDelete()
     {
-        if (!$this->session->exists('yes_delete'))
+        if (!$this->session->exists('yes_delete')) {
             Header::redirect(Uri::get('affiliate', 'account', 'delete'));
-        else
+        } else {
             $this->output();
+        }
     }
 
+    /**
+     * @param string $sMail
+     * @param string $sHash
+     */
     public function activate($sMail, $sHash)
     {
-        (new UserCore)->activateAccount($sMail, $sHash, $this->config, $this->registry, 'affiliate');
+        (new UserCore)->activateAccount(
+            $sMail,
+            $sHash,
+            $this->config,
+            $this->registry,
+            'affiliate'
+        );
     }
 }

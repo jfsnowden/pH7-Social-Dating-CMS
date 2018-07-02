@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<phpunit bootstrap="_tests/Unit/bootstrap.php" colors="true">
+<phpunit
+    bootstrap="_tests/Unit/bootstrap.php"
+    processIsolation="true"
+    verbose="true"
+    colors="true">
     <testsuites>
         <testsuite name="pH7CMS Protected">
             <directory>_tests/Unit</directory>
@@ -18,6 +22,7 @@
     </filter>
 
     <logging>
-        <log type="coverage-html" target="coverage"/>
+        <log type="coverage-text" target="php://stdout" showUncoveredFiles="true" showOnlySummary="true" />
+        <log type="coverage-html" target="coverage" />
     </logging>
 </phpunit>

@@ -3,7 +3,7 @@
  * @title            Abstract API class
  *
  * @author           Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright        (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / Framework / Video / Api
  * @link             http://ph7cms.com
@@ -28,21 +28,17 @@ abstract class Api
     /** @var string */
     protected $sApiKey;
 
-    /** @var string */
-    protected $bDefaultVideo;
-
-    /** @var boolean */
+    /** @var bool */
     protected $bAutoplay;
 
     public function __construct()
     {
         $this->oStr = new Str;
-        $this->sDefaultVideo = DbConfig::getSetting('defaultVideo');
         $this->bAutoplay = DbConfig::getSetting('autoplayVideo');
     }
 
     /**
-     * Set API key (currentyl required only by Youtube API class).
+     * Set API key (currently only required by Youtube API class).
      *
      * @param string $sApiKey
      *
@@ -58,7 +54,7 @@ abstract class Api
      *
      * @see Api::getInfo();
      *
-     * @return string|boolean The title with escape function if found otherwise returns false.
+     * @return string|bool The title with escape function if found otherwise returns false.
      */
     public function getTitle()
     {
@@ -70,7 +66,7 @@ abstract class Api
      *
      * @see Api::getInfo();
      *
-     * @return string|boolean The description with escape function if found otherwise returns false.
+     * @return string|bool The description with escape function if found otherwise returns false.
      */
     public function getDescription()
     {
@@ -82,7 +78,7 @@ abstract class Api
      *
      * @see Api::getInfo();
      *
-     * @return integer|boolean The video duration if found, FALSE otherwise.
+     * @return int|bool The video duration if found, FALSE otherwise.
      */
     public function getDuration()
     {
@@ -92,7 +88,7 @@ abstract class Api
     /**
      * @param string $sUrl
      *
-     * @return string|boolean The embed URL if id is valid, false otherwise.
+     * @return string|bool The embed URL if id is valid, false otherwise.
      */
     public function getEmbedUrl($sUrl)
     {
@@ -114,10 +110,10 @@ abstract class Api
     public function getVideoId($sUrl)
     {
         $aData = parse_url($sUrl);
-        $sUrl = str_replace(array('://', 'v=', 'v/', '?', '=', '//', $aData['scheme'], $aData['host'], 'watch', 'feature', 'player_embedded'), '', $sUrl);
+        $sUrl = str_replace(['://', 'v=', 'v/', '?', '=', '//', $aData['scheme'], $aData['host'], 'watch', 'feature', 'player_embedded'], '', $sUrl);
         $sUrl = preg_replace('#^/#', '', $sUrl);
         $sUrl = preg_replace('#^([^/&=\?]+)(?:.+)?$#i', '$1', $sUrl);
-        $sUrl = str_replace(array('&', '/'), '', $sUrl); // To finish the cleaning
+        $sUrl = str_replace(['&', '/'], '', $sUrl); // To finish the cleaning
 
         return $sUrl;
     }
@@ -127,7 +123,7 @@ abstract class Api
      *
      * @param string $sUrl
      *
-     * @return \stdClass|boolean Returns data object on success or FALSE on failure.
+     * @return \stdClass|bool Returns data object on success or FALSE on failure.
      */
     protected function getData($sUrl)
     {

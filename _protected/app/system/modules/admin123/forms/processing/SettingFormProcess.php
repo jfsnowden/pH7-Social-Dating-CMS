@@ -1,7 +1,7 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Admin / From / Processing
  */
@@ -10,6 +10,7 @@ namespace PH7;
 
 defined('PH7') or exit('Restricted access');
 
+use PH7\Framework\Image\Image;
 use PH7\Framework\Layout\Gzip\Gzip;
 use PH7\Framework\Mvc\Model\DbConfig;
 use PH7\Framework\Navigation\Browser;
@@ -17,6 +18,11 @@ use PH7\Framework\Navigation\Browser;
 class SettingFormProcess extends Form
 {
     const LOGO_FILENAME = 'logo.png';
+    const MIN_CSRF_TOKEN_LIFETIME = 10;
+    const LOGO_WIDTH = 47;
+    const LOGO_HEIGHT = 45;
+    const MAX_WATERMARK_SIZE = 5;
+    const DEFAULT_BROWSER_HEX_CODE = '#000000';
 
     /** @var boolean */
     private $bIsErr = false;
@@ -30,15 +36,16 @@ class SettingFormProcess extends Form
         'default_language' => 'defaultLanguage',
         'map_type' => 'mapType',
         'profile_with_avatars' => 'profileWithAvatarSet',
-        'users_block' => 'usersBlock',
-        'number_profile_splash_page' => 'numberProfileSplashPage',
         'splash_page' => 'splashPage',
         'bg_splash_vid' => 'bgSplashVideo',
+        'users_block' => 'usersBlock',
+        'number_profile_splash_page' => 'numberProfileSplashPage',
         'full_ajax_site' => 'fullAjaxSite',
         'site_status' => 'siteStatus',
         'social_media_widgets' => 'socialMediaWidgets',
         'disclaimer' => 'disclaimer',
         'cookie_consent_bar' => 'cookieConsentBar',
+        'display_powered_by_link' => 'displayPoweredByLink',
         'is_software_news_feed' => 'isSoftwareNewsFeed',
 
         // Email
@@ -101,6 +108,8 @@ class SettingFormProcess extends Form
         'time_delay_send_forum_msg' => 'timeDelaySendForumMsg',
 
         // Captcha
+        'captcha_complexity' => 'captchaComplexity',
+        'captcha_case_sensitive' => 'captchaCaseSensitive',
         'is_captcha_user_signup' => 'isCaptchaUserSignup',
         'is_captcha_affiliate_signup' => 'isCaptchaAffiliateSignup',
         'is_captcha_mail' => 'isCaptchaMail',
@@ -110,6 +119,13 @@ class SettingFormProcess extends Form
         'clean_msg' => 'cleanMsg',
         'clean_comment' => 'cleanComment',
         'clean_messenger' => 'cleanMessenger',
+
+        // Design
+        'background_color' => 'backgroundColor',
+        'text_color' => 'textColor',
+        'link_color' => 'linkColor',
+        'footer_link_color' => 'footerLinkColor',
+        'link_hover_color' => 'linkHoverColor',
 
         // API
         'google_api_key' => 'googleApiKey',
@@ -131,7 +147,7 @@ class SettingFormProcess extends Form
 
         DbConfig::clearCache();
 
-        if (!$this->bIsErr) {
+        if ($this->noErrors()) {
             \PFBC\Form::setSuccess('form_setting', t('Configurations successfully updated!'));
         }
     }
@@ -142,63 +158,67 @@ class SettingFormProcess extends Form
     private function updateGenericFields()
     {
         foreach (self::$aSettingFields as $sKey => $sVal) {
-            if ($sKey == 'security_token_lifetime') {
-                $iSecTokenLifetime = (int) $this->httpRequest->post('security_token_lifetime');
+            if ($sKey === 'security_token_lifetime') {
+                $iSecTokenLifetime = (int)$this->httpRequest->post('security_token_lifetime');
 
                 if (!$this->str->equals($iSecTokenLifetime, DbConfig::getSetting('securityTokenLifetime'))) {
-                    if ($iSecTokenLifetime < 10) {
-                        \PFBC\Form::setError('form_setting', t('The token lifetime cannot be below 10 seconds.'));
+                    if ($iSecTokenLifetime < self::MIN_CSRF_TOKEN_LIFETIME) {
+                        \PFBC\Form::setError('form_setting', t('The token lifetime cannot be below %0% seconds.', self::MIN_CSRF_TOKEN_LIFETIME));
                         $this->bIsErr = true;
-                    }
-                    else
+                    } else {
                         DbConfig::setSetting($iSecTokenLifetime, 'securityTokenLifetime');
+                    }
                 }
-            }
-            elseif (!$this->str->equals($this->httpRequest->post($sKey), DbConfig::getSetting($sVal))) {
+            } elseif ($this->hasDataChanged($sKey, $sVal)) {
                 switch ($sKey) {
-                    case 'min_username_length':
-                    {
+                    case 'min_username_length': {
                         $iMaxUsernameLength = $this->httpRequest->post('max_username_length')-1;
-                        if ($this->httpRequest->post('min_username_length') > $iMaxUsernameLength)
-                        {
+                        if ($this->httpRequest->post('min_username_length') > $iMaxUsernameLength) {
                             \PFBC\Form::setError('form_setting', t('The minimum length of the username cannot exceed %0% characters.', $iMaxUsernameLength));
                              $this->bIsErr = true;
-                         }
-                         else
-                             DbConfig::setSetting($this->httpRequest->post('min_username_length'), 'minUsernameLength');
+                         } else {
+                            DbConfig::setSetting($this->httpRequest->post('min_username_length'), 'minUsernameLength');
+                        }
                     } break;
 
-                    case 'max_username_length':
-                    {
-                        if ($this->httpRequest->post('max_username_length') > PH7_MAX_USERNAME_LENGTH)
-                        {
+                    case 'max_username_length': {
+                        if ($this->httpRequest->post('max_username_length') > PH7_MAX_USERNAME_LENGTH) {
                             \PFBC\Form::setError('form_setting', t('The maximum length of the username cannot exceed %0% characters.', PH7_MAX_USERNAME_LENGTH));
                             $this->bIsErr = true;
-                        }
-                        else
+                        } else {
                             DbConfig::setSetting($this->httpRequest->post('max_username_length'), 'maxUsernameLength');
+                        }
                     } break;
 
-                    case 'min_age_registration':
-                    {
-                        if ($this->httpRequest->post('min_age_registration') >= $this->httpRequest->post('max_age_registration'))
-                        {
+                    case 'min_age_registration': {
+                        if ($this->httpRequest->post('min_age_registration') >= $this->httpRequest->post('max_age_registration')) {
                             \PFBC\Form::setError('form_setting', t('You cannot specify a minimum age higher than the maximum age.'));
                             $this->bIsErr = true;
-                        }
-                        else
+                        } else {
                             DbConfig::setSetting($this->httpRequest->post('min_age_registration'), 'minAgeRegistration');
+                        }
                     } break;
 
-                    case 'size_watermark_text_image':
-                    {
-                        if ($this->httpRequest->post('size_watermark_text_image') >= 0 && $this->httpRequest->post('size_watermark_text_image') <= 5)
+                    case 'size_watermark_text_image': {
+                        if ($this->httpRequest->post('size_watermark_text_image') >= 0 &&
+                            $this->httpRequest->post('size_watermark_text_image') <= self::MAX_WATERMARK_SIZE) {
                             DbConfig::setSetting($this->httpRequest->post('size_watermark_text_image'), 'sizeWatermarkTextImage');
+                        }
                     } break;
 
-                    default:
-                    {
-                        $sMethod = ($sKey == 'site_status' ? 'setSiteMode' : ($sKey == 'social_media_widgets' ? 'setSocialWidgets' : 'setSetting'));
+                    case 'background_color':
+                    case 'text_color':
+                    case 'link_color':
+                    case 'footer_link_color':
+                    case 'link_hover_color': {
+                        // Don't update if value wasn't changed by user but was set by browser because field was empty
+                        if ($this->httpRequest->post($sKey) !== self::DEFAULT_BROWSER_HEX_CODE) {
+                            DbConfig::setSetting($this->httpRequest->post($sKey), $sVal);
+                        }
+                    } break;
+
+                    default: {
+                        $sMethod = ($sKey === 'site_status' ? 'setSiteMode' : ($sKey === 'social_media_widgets' ? 'setSocialWidgets' : 'setSetting'));
                         DbConfig::$sMethod($this->httpRequest->post($sKey, null, true), $sVal);
                     }
                 }
@@ -211,26 +231,55 @@ class SettingFormProcess extends Form
      */
     private function updateLogo()
     {
-        if (!empty($_FILES['logo']['tmp_name'])) {
-            $oLogo = new Framework\Image\Image($_FILES['logo']['tmp_name']);
+        if ($this->isLogoUploaded()) {
+            $oLogo = new Image($_FILES['logo']['tmp_name']);
             if (!$oLogo->validate()) {
                 \PFBC\Form::setError('form_setting', Form::wrongImgFileTypeMsg());
                 $this->bIsErr = true;
             } else {
                 /*
-                 * The method deleteFile first test if the file exists, if so it delete the file.
+                 * File::deleteFile() tests first if the file exists, and then deletes the file
                  */
                 $sPathName = PH7_PATH_TPL . PH7_TPL_NAME . PH7_DS . PH7_IMG . self::LOGO_FILENAME;
                 $this->file->deleteFile($sPathName); // It erases the old logo.
-                $oLogo->dynamicResize(250,60);
+                $oLogo->dynamicResize(self::LOGO_WIDTH, self::LOGO_HEIGHT);
                 $oLogo->save($sPathName);
 
-                // Clear CSS cache, because the logo is storaged with data URI in the CSS cache file
+                // Clear CSS cache, because the logo is stored with data URI in the CSS cache file
                 $this->file->deleteDir(PH7_PATH_CACHE . Gzip::CACHE_DIR);
 
                 // Clear the Web browser cache
                 (new Browser)->noCache();
             }
         }
+    }
+
+    /**
+     * @param string $sKey
+     * @param string $sVal
+     *
+     * @return bool
+     *
+     * @throws Framework\Mvc\Request\WrongRequestMethodException
+     */
+    private function hasDataChanged($sKey, $sVal)
+    {
+        return !$this->str->equals($this->httpRequest->post($sKey), DbConfig::getSetting($sVal));
+    }
+
+    /**
+     * @return bool
+     */
+    private function isLogoUploaded()
+    {
+        return !empty($_FILES['logo']['tmp_name']);
+    }
+
+    /**
+     * @return bool
+     */
+    private function noErrors()
+    {
+        return !$this->bIsErr;
     }
 }

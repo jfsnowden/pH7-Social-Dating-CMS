@@ -3,7 +3,7 @@
  * @title          User Design Core Model Class
  *
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Core / Model / Design
  */
@@ -45,13 +45,17 @@ class UserDesignCoreModel extends Design
      *
      * @param string $sCountryCode Optional The country code (e.g., GB, RU, FR, ES, ...). Default ''
      * @param string $sCity Optional. The city name. Default ''
-     * @param integer $iOffset Optional. Default 0
-     * @param integer $iLimit Optional. Default 14
+     * @param int $iOffset Optional. Default 0
+     * @param int $iLimit Optional. Default 14
      *
      * @return void HTML output.
      */
-    public function geoProfiles($sCountryCode = '', $sCity = '', $iOffset = 0, $iLimit = self::GEO_PROFILE_LIMIT)
-    {
+    public function geoProfiles(
+        $sCountryCode = '',
+        $sCity = '',
+        $iOffset = UserCoreModel::OFFLINE_STATUS,
+        $iLimit = self::GEO_PROFILE_LIMIT
+    ) {
         $oUserGeo = $this->oUserModel->getGeoProfiles($sCountryCode, $sCity, false, SearchCoreModel::LAST_ACTIVITY, $iOffset, $iLimit);
         if (empty($oUserGeo)) {
             return;
@@ -73,7 +77,7 @@ class UserDesignCoreModel extends Design
                     's' => $oRow->sex
                 ];
 
-                echo t('Meet %0% on %site_name%!', '<a href="' . $this->oUser->getProfileLink($oRow->username) . '">'. $sFirstName . '</a>'), '</strong><br /><em>', t('I am a %0% and I am looking %1%.', $oRow->sex, $oRow->matchSex), '<br />', t('I from %0%, %1%.', t($oRow->country), $sCity), '</em></p><a rel="nofollow" href="', Uri::get('user', 'signup', 'step1', '?' . Url::httpBuildQuery($aHttpParams), false), '"><img src="', $this->getUserAvatar($oRow->username, $oRow->sex, self::GEO_PROFILE_AVATAR_SIZE), '" alt="', t('Meet %0% on %site_name%', $oRow->username), '" /></a>';
+                echo t('Meet %0% on %site_name%!', '<a href="' . $this->oUser->getProfileLink($oRow->username) . '">' . $sFirstName . '</a>'), '</strong><br /><em>', t('I am a %0% and I am looking %1%.', $oRow->sex, $oRow->matchSex), '<br />', t('I from %0%, %1%.', t($oRow->country), $sCity), '</em></p><a rel="nofollow" href="', Uri::get('user', 'signup', 'step1', '?' . Url::httpBuildQuery($aHttpParams), false), '"><img src="', $this->getUserAvatar($oRow->username, $oRow->sex, self::GEO_PROFILE_AVATAR_SIZE), '" alt="', t('Meet %0% on %site_name%', $oRow->username), '" /></a>';
             } else {
                 echo t('Meet %0% on %site_name%!', $sFirstName), '</strong><br /><em>', t('I am a %0% and I am looking %1%.', $oRow->sex, $oRow->matchSex), '<br />', t('I from %0%, %1%.', t($oRow->country), $sCity), '</em></p><a href="', $this->oUser->getProfileLink($oRow->username), '"><img src="', $this->getUserAvatar($oRow->username, $oRow->sex, self::GEO_PROFILE_AVATAR_SIZE), '" alt="', t('Meet %0% on %site_name%', $oRow->username), '" /></a>';
             }
@@ -86,7 +90,7 @@ class UserDesignCoreModel extends Design
      * @param integer $iOffset
      * @param integer $iLimit
      */
-    public function carouselProfiles($iOffset = 0, $iLimit = self::CAROUSEL_PROFILE_LIMIT)
+    public function carouselProfiles($iOffset = UserCoreModel::OFFLINE_STATUS, $iLimit = self::CAROUSEL_PROFILE_LIMIT)
     {
         $oUsers = $this->oUserModel->getProfiles(SearchCoreModel::LATEST, $iOffset, $iLimit);
 
@@ -113,9 +117,9 @@ class UserDesignCoreModel extends Design
                     's' => $oUser->sex
                 ];
 
-                echo t('Meet %0% on %site_name%!', '<a href="' . $this->oUser->getProfileLink($oUser->username) . '">' . $sFirstName . '</a>'), '</strong><br /><em>', t('I am a %0% and I am looking %1%.', $oUser->sex, $oUser->matchSex), '<br />', t('I from %0%, %1%.', t($oUser->country), $sCity), '</em></p><a rel="nofollow" href="', Uri::get('user', 'signup', 'step1', '?' . Url::httpBuildQuery($aHttpParams), false), '"><img src="', $this->getUserAvatar($oUser->username, $oUser->sex, self::CAROUSEL_PROFILE_AVATAR_SIZE), '" alt="',t('Meet %0% on %site_name%', $oUser->username), '" class="splash_avatar" /></a>';
+                echo t('Meet %0% on %site_name%!', '<a href="' . $this->oUser->getProfileLink($oUser->username) . '">' . $sFirstName . '</a>'), '</strong><br /><em>', t('I am a %0% and I am looking %1%.', $oUser->sex, $oUser->matchSex), '<br />', t('I from %0%, %1%.', t($oUser->country), $sCity), '</em></p><a rel="nofollow" href="', Uri::get('user', 'signup', 'step1', '?' . Url::httpBuildQuery($aHttpParams), false), '"><img src="', $this->getUserAvatar($oUser->username, $oUser->sex, self::CAROUSEL_PROFILE_AVATAR_SIZE), '" alt="', t('Meet %0% on %site_name%', $oUser->username), '" class="splash_avatar" /></a>';
             } else {
-                echo t('Meet %0% on %site_name%!', $sFirstName), '</strong><br /><em>', t('I am a %0% and I am looking %1%.', $oUser->sex, $oUser->matchSex), '<br />', t('I from %0%, %1%.', t($oUser->country), $sCity), '</em></p><a href="', $this->oUser->getProfileLink($oUser->username), '"><img src="', $this->getUserAvatar($oUser->username, $oUser->sex, self::CAROUSEL_PROFILE_AVATAR_SIZE), '" alt="',t('Meet %0% on %site_name%', $oUser->username), '" class="splash_avatar" /></a>';
+                echo t('Meet %0% on %site_name%!', $sFirstName), '</strong><br /><em>', t('I am a %0% and I am looking %1%.', $oUser->sex, $oUser->matchSex), '<br />', t('I from %0%, %1%.', t($oUser->country), $sCity), '</em></p><a href="', $this->oUser->getProfileLink($oUser->username), '"><img src="', $this->getUserAvatar($oUser->username, $oUser->sex, self::CAROUSEL_PROFILE_AVATAR_SIZE), '" alt="', t('Meet %0% on %site_name%', $oUser->username), '" class="splash_avatar" /></a>';
             }
 
             echo '</div>';
@@ -128,7 +132,7 @@ class UserDesignCoreModel extends Design
      * @param integer $iOffset
      * @param integer $iLimit
      */
-    public function profilesBlock($iOffset = 0, $iLimit = self::PROFILE_BLOCK_LIMIT)
+    public function profilesBlock($iOffset = UserCoreModel::OFFLINE_STATUS, $iLimit = self::PROFILE_BLOCK_LIMIT)
     {
         $oUsers = $this->oUserModel->getProfiles(SearchCoreModel::LATEST, $iOffset, $iLimit);
         if (empty($oUsers)) {
@@ -140,7 +144,7 @@ class UserDesignCoreModel extends Design
         foreach ($oUsers as $oUser) {
             $sFirstName = $this->oStr->upperFirst($oUser->firstName);
 
-            echo '<li><a rel="nofollow" href="', $this->oUser->getProfileSignupLink($oUser->username, $sFirstName, $oUser->sex), '"><img src="', $this->getUserAvatar($oUser->username, $oUser->sex, self::PROFILE_BLOCK_AVATAR_SIZE), '" alt="',t('Meet %0% on %site_name%', $oUser->username), '" /></a></li>';
+            echo '<li><a rel="nofollow" href="', $this->oUser->getProfileSignupLink($oUser->username, $sFirstName, $oUser->sex), '"><img src="', $this->getUserAvatar($oUser->username, $oUser->sex, self::PROFILE_BLOCK_AVATAR_SIZE), '" alt="', t('Meet %0% on %site_name%', $oUser->username), '" /></a></li>';
         }
 
         echo '</ul>';
@@ -150,7 +154,7 @@ class UserDesignCoreModel extends Design
      * @param integer $iOffset
      * @param integer $iLimit
      */
-    public function profiles($iOffset = 0, $iLimit = self::PROFILE_LIMIT)
+    public function profiles($iOffset = UserCoreModel::OFFLINE_STATUS, $iLimit = self::PROFILE_LIMIT)
     {
         $oUsers = $this->oUserModel->getProfiles(SearchCoreModel::LAST_ACTIVITY, $iOffset, $iLimit);
         if (empty($oUsers)) {
@@ -172,14 +176,15 @@ class UserDesignCoreModel extends Design
         echo '<div class="user_status">';
 
         if ($oUserModel->isOnline($iProfileId, DbConfig::getSetting('userTimeout'))) {
-            echo '<img src="', PH7_URL_TPL, PH7_TPL_NAME, PH7_SH, PH7_IMG, 'icon/online.png" alt="', t('Online'), '" title="', t('Is Online!'), '" />';
+            $sCssClass = 'green';
+            $sTxt = t('Online!');
         } else {
             $iStatus = $oUserModel->getUserStatus($iProfileId);
-            $sImgName = ($iStatus == 2 ? 'busy' : ($iStatus == 3 ? 'away' : 'offline'));
-            $sTxt = ($iStatus == 2 ? t('Busy') : ($iStatus == 3 ? t('Away') : t('Offline')));
-
-            echo '<img src="', PH7_URL_TPL, PH7_TPL_NAME, PH7_SH, PH7_IMG, 'icon/', $sImgName, '.png" alt="', $sTxt, '" title="', $sTxt, '" />';
+            $sCssClass = ($iStatus === UserCoreModel::BUSY_STATUS ? 'orange' : ($iStatus === UserCoreModel::AWAY_STATUS ? 'red' : 'gray'));
+            $sTxt = ($iStatus === UserCoreModel::BUSY_STATUS ? t('Busy') : ($iStatus === UserCoreModel::AWAY_STATUS ? t('Away') : t('Offline')));
         }
+
+        echo '<span class="', $sCssClass, '" title="', $sTxt, '">•</span>';
 
         echo '</div>';
 

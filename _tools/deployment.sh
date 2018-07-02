@@ -5,8 +5,8 @@
 # Description:     pH7CMS Deployment Automation. It is used to clean the script before distribution to customers.
 #                  To work correctly, you have to execute this script when you're in the project root with your terminal (generally the parent folder of "_tools/").
 #                  (e.g., you@you:/path/to/root-project$ bash _tools/pH7.sh).
-# Author:          Pierre-Henry Soria <ph7software@gmail.com>
-# Copyright:       (c) 2014-2017, Pierre-Henry Soria. All Rights Reserved.
+# Author:          Pierre-Henry Soria <hello@ph7cms.com>
+# Copyright:       (c) 2014-2018, Pierre-Henry Soria. All Rights Reserved.
 # License:         GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
 ##
 
@@ -16,16 +16,19 @@ function run() {
         _confirm "Have you made a copy of it before?"
         if [ $? -eq 1 ]; then
             ## Permission
-            sudo chmod 777 -R .
+            sudo chmod -R 777 .
 
             ## TMP files
             find . -type f \( -name '*~' -or -name '*.log' -or -name '*.tmp' -or -name '*.swp' -or -name '.directory' -or -name '._*' -or -name '.DS_Store*' -or -name 'Thumbs.db' \) -exec rm {} \;
 
             ## Cleaning the code
-            params="-name '*.php' -or -name '*.css' -or -name '*.js' -or -name '*.html' -or -name '*.xml' -or -name '*.xsl' -or -name '*.xslt' -or -name '*.json' -or -name '*.yml' -or -name '*.tpl' -or -name '*.phs' -or -name '*.ph7' -or -name '*.sh' -or -name '*.sql' -or -name '*.ini' -or -name '*.md' -or -name '*.markdown' -or -name '.htaccess'"
+            params="-name '*.php' -or -name '*.css' -or -name '*.js' -or -name '*.html' -or -name '*.xml' -or -name '*.xsl' -or -name '*.xslt' -or -name '*.svg' -or -name '*.json' -or -name '*.yml' -or -name '*.tpl' -or -name '*.phs' -or -name '*.ph7' -or -name '*.sh' -or -name '*.sql' -or -name '*.ini' -or -name '*.md' -or -name '*.markdown' -or -name '.htaccess'"
             exec="find . -type f \( $params \) -print0 | xargs -0 perl -wi -pe"
             eval "$exec 's/\s+$/\n/'"
             eval "$exec 's/\t/    /g'"
+
+            # Update Composer itself to the latest version
+            php ./composer.phar self-update
 
             # Install dependencies for production only (without dev packages)
             php ./composer.phar install --no-dev
@@ -60,6 +63,7 @@ function run() {
             rm ./phpunit.phar
             rm ./phpunit.xml.dist
             rm ./_protected/app/configs/config.ini
+            rm -rf ./coverage/ # PHPUnit coverage reports
             rm -rf ./.idea/ # PHPStorm
 
             ## Other

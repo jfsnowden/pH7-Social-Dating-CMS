@@ -1,7 +1,7 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright      (c) 2016-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2016-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Two-Factor Auth / Controller
  */
@@ -9,6 +9,7 @@
 namespace PH7;
 
 use PH7\Framework\Error\CException\PH7InvalidArgumentException;
+use PH7\Framework\Layout\Html\Design;
 use PH7\Framework\Parse\Url;
 use PH7\Framework\Url\Header;
 use RobThree\Auth\TwoFactorAuth as Authenticator;
@@ -58,7 +59,7 @@ class MainController extends Controller
         $this->view->page_title = $this->view->h2_title = t('Two-Factor Authentication');
         $this->view->mod = $this->sMod;
 
-        $this->iIsEnabled = (int) $this->o2FactorModel->isEnabled($this->iProfileId);
+        $this->iIsEnabled = (int)$this->o2FactorModel->isEnabled($this->iProfileId);
         if ($this->httpRequest->postExists('status')) {
             $this->update2FaStatus();
         }
@@ -133,7 +134,7 @@ class MainController extends Controller
      */
     protected function update2FaStatus()
     {
-        $this->iIsEnabled = ($this->iIsEnabled === 1) ? 0 : 1; // Get the opposite value (if 1 so 0 | if 0 so 1)
+        $this->iIsEnabled = $this->iIsEnabled === 1 ? 0 : 1; // Get the opposite value (if 1 so 0 | if 0 so 1)
 
         $this->o2FactorModel->setStatus($this->iIsEnabled, $this->iProfileId);
     }
@@ -156,7 +157,11 @@ class MainController extends Controller
             $this->sMod !== 'affiliate' &&
             $this->sMod !== PH7_ADMIN_MOD
         ) {
-            Header::redirect($this->registry->site_url, t('No module found!'), 'error');
+            Header::redirect(
+                $this->registry->site_url,
+                t('No module found!'),
+                Design::ERROR_TYPE
+            );
         }
     }
 }

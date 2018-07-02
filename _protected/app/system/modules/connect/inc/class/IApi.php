@@ -3,7 +3,7 @@
  * @title          Interface Api Class
  *
  * @author         Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Connect / Inc / Class
  * @version        1.1
@@ -21,6 +21,7 @@ interface IApi
      *
      * @param integer $iId
      * @param UserCoreModel $oUserModel
+     *
      * @return void
      */
     public function setLogin($iId, UserCoreModel $oUserModel);
@@ -29,6 +30,7 @@ interface IApi
      * Set Avatar.
      *
      * @param string $sUrl URL of avatar.
+     *
      * @return void
      */
     public function setAvatar($sUrl);
@@ -37,6 +39,7 @@ interface IApi
      * Get Avatar.
      *
      * @param string $sUrl
+     *
      * @return string The Avatar
      */
     public function getAvatar($sUrl);

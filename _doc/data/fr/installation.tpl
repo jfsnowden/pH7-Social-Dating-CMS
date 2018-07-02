@@ -14,7 +14,7 @@
 <p>Si le système d'exploitation de votre serveur est de type Unix, vous devez vérifier si les permissions des fichiers (CHMOD) sont correctement configuré.<br />
 En valeurs numériques cela doit être <em>755</em> pour tous les dossiers et <em>644</em> pour tous les fichiers.<br />
 Attention, les dossiers suivants doivent avoir les permissions <em>777</em> :</p>
-<pre>~/VOTRE-DOSSIER-PUBLIC/data/*</pre>
+<pre>~/VOTRE-DOSSIER-PUBLIC/data/system/modules/*</pre>
 <pre>~/VOTRE-DOSSIER-PUBLIC/_install/*</pre>
 <pre>~/VOTRE-DOSSIER-PUBLIC/_repository/module/*</pre>
 <pre>~/VOTRE-DOSSIER-PUBLIC/_repository/upgrade/*</pre>
@@ -24,8 +24,10 @@ Attention, les dossiers suivants doivent avoir les permissions <em>777</em> :</p
 <pre>~/VOTRE-DOSSIER-PROTECTED/data/tmp/*</pre>
 <pre>~/VOTRE-DOSSIER-PROTECTED/data/log/*</pre>
 <pre>~/VOTRE-DOSSIER-PROTECTED/framework/Core/*</pre>
-<p><span class="warning">Attention, ces permissions ne permettant pas l'édition et la création de fichiers dans le module File Management du panneau d'administration.</span><br />
-Si vous voulez le permettre, vous devez mettre en valeurs numériques <em>777</em> pour tous les dossiers et <em>666</em> pour tous les fichiers.</p>
+<p>
+    <span class="warning">Attention, ces permissions ne permettant pas l'édition et la création de fichiers dans le module File Management du panneau d'administration.</span><br />
+    Si vous voulez le permettre, vous devez mettre en valeurs numériques <em>777</em> pour tous les dossiers et <em>666</em> pour tous les fichiers.
+</p>
 
 <h3>5. Lancez l'installateur</h3>
 <p>Vous devez simplement vous rendre à l'URL suivante et suivre attentivement les instructions : <em>http://www.VOTRE-SITE.com/<strong>_install</strong>/</em></p>

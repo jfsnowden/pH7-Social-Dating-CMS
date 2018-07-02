@@ -4,7 +4,7 @@
  * @desc             Loading classes to include additional.
  *
  * @author           Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright        (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / App / Include / Class / Loader
  * @version          1.0
@@ -41,10 +41,10 @@ final class Autoloader
         // Specify the extensions that may be loaded
         spl_autoload_extensions('.php');
         /** Register the loader methods **/
-        spl_autoload_register(array(__CLASS__, 'loadController'));
-        spl_autoload_register(array(__CLASS__, 'loadClass'));
-        spl_autoload_register(array(__CLASS__, 'loadModel'));
-        spl_autoload_register(array(__CLASS__, 'loadForm'));
+        spl_autoload_register([__CLASS__, 'loadController']);
+        spl_autoload_register([__CLASS__, 'loadClass']);
+        spl_autoload_register([__CLASS__, 'loadModel']);
+        spl_autoload_register([__CLASS__, 'loadForm']);
     }
 
     /**

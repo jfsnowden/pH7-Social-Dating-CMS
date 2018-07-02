@@ -1,7 +1,7 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Comment / Controller
  */
@@ -12,38 +12,60 @@ use PH7\Framework\Http\Http;
 use PH7\Framework\Mvc\Router\Uri;
 use PH7\Framework\Navigation\Page;
 use PH7\Framework\Security\Ban\Ban;
+use PH7\Framework\Security\CSRF\Token as CSRFToken;
+use PH7\Framework\Url\Header;
 
 class CommentController extends Controller
 {
     const COMMENTS_PER_PAGE = 15;
 
-    private $oComment, $oCommentModel, $sTable, $sTitle, $sMsg, $iId;
+    /** @var CommentModel */
+    private $oCommentModel;
+
+    /** @var string */
+    private $sTable;
+
+    /** @var string */
+    private $sTitle;
+
+    /** @var string */
+    private $sMsg;
+
+    /** @var null|int */
+    private $iId;
 
     public function __construct()
     {
         parent::__construct();
+
         $this->oCommentModel = new CommentModel();
 
         $this->sTable = $this->httpRequest->get('table');
         $this->view->table = $this->sTable;
-        $this->iId = (is_numeric($this->httpRequest->get('id'))) ? $this->httpRequest->get('id') : null;
+        $this->iId = $this->getProfileId();
 
         // Predefined meta_keywords tags
         $this->view->meta_keywords = t('comment,comments,social,community,friend,social network,people,dating,post,wall,social dating');
 
         // Adding Css Style for the Comment Post
-        $this->design->addCss(PH7_LAYOUT . PH7_SYS . PH7_MOD . $this->registry->module . PH7_SH . PH7_TPL . PH7_TPL_MOD_NAME . PH7_SH . PH7_CSS, 'common.css');
+        $this->design->addCss(
+            PH7_LAYOUT . PH7_SYS . PH7_MOD . $this->registry->module . PH7_SH . PH7_TPL . PH7_TPL_MOD_NAME . PH7_SH . PH7_CSS,
+            'common.css'
+        );
     }
 
     public function index()
     {
-        Framework\Url\Header::redirect(Uri::get('error', 'http', 'index'));
+        Header::redirect(Uri::get('error', 'http', 'index'));
     }
 
     public function read()
     {
         // Adding JavaScript file for Ajax Comment
-        $this->design->addJs(PH7_LAYOUT . PH7_SYS . PH7_MOD . $this->registry->module . PH7_SH . PH7_TPL . PH7_TPL_MOD_NAME . PH7_SH . PH7_JS, 'comment.js');
+        $this->design->addJs(
+            PH7_LAYOUT . PH7_SYS . PH7_MOD . $this->registry->module . PH7_SH . PH7_TPL . PH7_TPL_MOD_NAME . PH7_SH . PH7_JS,
+            'comment.js'
+        );
 
         $this->sTitle = t('Read Comment');
         $this->view->page_title = $this->sTitle;
@@ -57,21 +79,25 @@ class CommentController extends Controller
             $this->oCommentModel->total($this->iId, $this->sTable), self::COMMENTS_PER_PAGE
         );
         $this->view->current_page = $oPage->getCurrentPage();
-        $oComment = $this->oCommentModel->read($this->iId, 1, $oPage->getFirstItem(), $oPage->getNbItemsPerPage(), $this->sTable);
+        $oComment = $this->oCommentModel->read(
+            $this->iId,
+            '1',
+            $oPage->getFirstItem(),
+            $oPage->getNbItemsPerPage(),
+            $this->sTable
+        );
         unset($oPage);
 
-        if (!empty($oComment))
-        {
+        if (!empty($oComment)) {
             $this->view->avatarDesign = new AvatarDesignCore(); // Avatar Design Class
             $this->view->member_id = $this->session->get('member_id');
-            $this->view->csrf_token = (new Framework\Security\CSRF\Token)->generate('comment');
+            $this->view->csrf_token = (new CSRFToken)->generate('comment');
 
             $this->view->comment = $oComment;
+        } else {
+            $this->notFound();
         }
-        else
-        {
-            $this->_notFound();
-        }
+
         $this->output();
     }
 
@@ -79,8 +105,7 @@ class CommentController extends Controller
     {
         $oComment = $this->oCommentModel->get($this->iId, 1, $this->sTable);
 
-        if (!empty($oComment))
-        {
+        if (!empty($oComment)) {
             $this->sTitle = t("Read the <span class='pH1'>%0%</span>'s comment", $oComment->firstName);
             $this->view->page_title = $this->sTitle;
             $this->view->meta_description = t('Read comment of %0%, %1%. %2%', $oComment->firstName, $oComment->username, substr(Ban::filterWord($oComment->comment, false), 0, 150));
@@ -91,10 +116,8 @@ class CommentController extends Controller
             $this->view->member_id = $this->session->get('member_id');
 
             $this->view->com = $oComment;
-        }
-        else
-        {
-            $this->_notFound();
+        } else {
+            $this->notFound();
             // Modified the message error
             $this->view->error = t('No comments yet, please return to the <a href="%0%">previous page</a>.', 'javascript:history.back();');
         }
@@ -115,39 +138,57 @@ class CommentController extends Controller
 
     public function delete()
     {
-        if ((($this->session->get('member_id') == $this->httpRequest->post('recipient_id')) || ($this->session->get('member_id') == $this->httpRequest->post('sender_id'))) || AdminCore::auth())
-        {
+        if (CommentCore::isRemovalEligible($this->httpRequest, $this->session)) {
             $this->sTable = $this->httpRequest->post('table');
 
-            if ($this->oCommentModel->delete($this->httpRequest->post('id'), $this->httpRequest->post('recipient_id'), $this->httpRequest->post('sender_id'), $this->sTable))
-            {
-                /* Clean All Data of CommentModel Cache */
-                (new Framework\Cache\Cache)->start(CommentCoreModel::CACHE_GROUP, null, null)->clear();
+            if ($this->oCommentModel->delete(
+                $this->httpRequest->post('id'),
+                $this->httpRequest->post('recipient_id'),
+                $this->httpRequest->post('sender_id'),
+                $this->sTable
+            )) {
+                CommentCore::clearCache();
 
                 $this->sMsg = t('The comment has been deleted!');
-            }
-            else
-            {
+            } else {
                 $this->sMsg = t('Your comment does not exist anymore.');
             }
-        }
-        else
-        {
+        } else {
             $this->sMsg = t('Whoops! The comment could not be removed!');
         }
 
-        Framework\Url\Header::redirect(Uri::get('comment', 'comment', 'read', $this->sTable . ',' . $this->httpRequest->post('recipient_id')), $this->sMsg);
+        Header::redirect(
+            Uri::get(
+                'comment',
+                'comment',
+                'read',
+                $this->sTable . ',' . $this->httpRequest->post('recipient_id')
+            ),
+            $this->sMsg
+        );
     }
 
     /**
      * Set a Not Found Error Message with HTTP 404 Code Status.
      *
      * @return void
+     *
+     * @throws Framework\File\Exception
+     * @throws Framework\Http\Exception
      */
-    private function _notFound()
+    private function notFound()
     {
-        Http::setHeadersByCode(404);
+        Http::setHeadersByCode(self::HTTP_NOT_FOUND_CODE);
+
         $this->view->page_title = t('Comment Not Found');
         $this->view->error = t('No comments yet, <a class="bold" href="%0%">add one</a>!', Uri::get('comment', 'comment', 'add', $this->sTable . ',' . $this->str->escape($this->httpRequest->get('id'))));
+    }
+
+    /**
+     * @return null|int
+     */
+    private function getProfileId()
+    {
+        return is_numeric($this->httpRequest->get('id')) ? $this->httpRequest->get('id') : null;
     }
 }

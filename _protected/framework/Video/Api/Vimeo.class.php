@@ -3,7 +3,7 @@
  * @title            Vimeo Class
  *
  * @author           Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright        (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / Framework / Video / Api
  * @link             http://ph7cms.com
@@ -22,7 +22,7 @@ class Vimeo extends Api implements IApi
     /**
      * @param string $sUrl
      *
-     * @return string|boolean Returns the video embed URL if it was found and is valid, FALSE otherwise.
+     * @return string|bool Returns the video embed URL if it was found and is valid, FALSE otherwise.
      */
     public function getVideo($sUrl)
     {
@@ -32,7 +32,7 @@ class Vimeo extends Api implements IApi
     /**
      * @param string $sUrl
      *
-     * @return Vimeo|boolean FALSE if unable to open the url, otherwise Vimeo class.
+     * @return Vimeo|bool FALSE if unable to open the url, otherwise Vimeo class.
      */
     public function getInfo($sUrl)
     {
@@ -49,20 +49,20 @@ class Vimeo extends Api implements IApi
     /**
      * @param string $sUrl
      * @param string $sMedia
-     * @param integer $iWidth
-     * @param integer $iHeight
+     * @param int $iWidth
+     * @param int $iHeight
      *
      * @return string
      */
     public function getMeta($sUrl, $sMedia, $iWidth, $iHeight)
     {
-        if ($sMedia == 'preview') {
+        if ($sMedia === 'preview') {
             // First load the video information.
             $this->getInfo($sUrl);
             // Then retrieve the thumbnail.
             return $this->oData->thumbnail_medium;
         } else {
-            $sParam = ($this->bAutoplay) ? '?autoplay=1&amp;' : '?';
+            $sParam = $this->bAutoplay ? '?autoplay=1&amp;' : '?';
             return '<iframe src="' . $this->getEmbedUrl($sUrl) . $sParam . 'title=0&amp;byline=0&amp;portrait=0" width="' . $iWidth . '" height="' . $iHeight . '" frameborder="0"></iframe>';
         }
     }
@@ -70,7 +70,7 @@ class Vimeo extends Api implements IApi
     /**
      * @param string $sUrl
      *
-     * @return integer|boolean Returns the ID of the video if it was found, FALSE otherwise.
+     * @return int|bool Returns the ID of the video if it was found, FALSE otherwise.
      */
     public function getVideoId($sUrl)
     {

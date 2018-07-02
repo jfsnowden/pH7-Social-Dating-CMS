@@ -4,7 +4,7 @@
  * @desc           Trying to protect against Distributed Denial-Of-Service attack.
  *
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / Framework / Security / DDoS
  * @version        0.2
@@ -18,7 +18,7 @@ use PH7\Framework\Cookie\Cookie;
 use PH7\Framework\Session\Session;
 
 /**
- * This class securing the server for DDoS attack only! (Not for the attacks DoS)
+ * This class securing the server against DDoS attack only! (not for DoS attacks)
  */
 final class Stop
 {
@@ -26,7 +26,7 @@ final class Stop
     const COOKIE_NAME = 'sss';
 
     /**
-     * @return boolean Return "true" If we believe that this person takes too much request otherwise "false"
+     * @return bool Return TRUE if it believes that we get too many requests from that session, FALSE otherwise.
      */
     public function cookie()
     {
@@ -50,7 +50,7 @@ final class Stop
     }
 
     /**
-     * @return boolean Return "true" If we believe that this person takes too much request otherwise "false"
+     * @return bool Return TRUE if it believes that we get too many requests from that session, FALSE otherwise.
      */
     public function session()
     {
@@ -70,6 +70,7 @@ final class Stop
         }
 
         unset($oSession);
+
         return $bStatus;
     }
 

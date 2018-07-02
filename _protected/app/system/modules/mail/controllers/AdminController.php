@@ -1,7 +1,7 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Mail / Controller
  */
@@ -17,7 +17,9 @@ class AdminController extends MainController
 
     public function index()
     {
-        Header::redirect(Uri::get('mail', 'admin', 'msglist'));
+        Header::redirect(
+            Uri::get('mail', 'admin', 'msglist')
+        );
     }
 
     public function msgList()
@@ -30,7 +32,10 @@ class AdminController extends MainController
             null,
             null
         );
-        $this->view->total_pages = $this->oPage->getTotalPages($this->iTotalMails, self::EMAILS_PER_PAGE);
+        $this->view->total_pages = $this->oPage->getTotalPages(
+            $this->iTotalMails,
+            self::EMAILS_PER_PAGE
+        );
         $this->view->current_page = $this->oPage->getCurrentPage();
 
         $oAllMsg = $this->oMailModel->search(

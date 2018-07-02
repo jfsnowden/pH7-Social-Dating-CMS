@@ -4,7 +4,7 @@
  * @desc           Escape the exception message.
  *
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7/ Framework / Error / CException
  * @version        1.1
@@ -16,14 +16,15 @@ defined('PH7') or exit('Restricted access');
 
 trait Escape
 {
-    protected $sAllowTags = '<br><i><em><b><strong><u>';
+    /** @var string */
+    private $sAllowTags = '<br><i><em><b><strong><u>';
 
     /**
      * Escape the exception message.
      *
      * @param string $sMsg
      */
-    protected function init($sMsg)
+    protected function strip($sMsg)
     {
         $this->message = strip_tags($sMsg, $this->sAllowTags);
     }

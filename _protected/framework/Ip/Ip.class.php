@@ -4,7 +4,7 @@
  * @desc             Helper for the IP Class.
  *
  * @author           Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright        (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / Framework / Ip
  * @version          1.2
@@ -19,12 +19,13 @@ use PH7\Framework\Server\Server;
 
 class Ip
 {
+    const DEFAULT_IP = '127.0.0.1';
     const IP_PATTERN = '[a-z0-9:.]{7,}';
 
     /**
      * Get IP address.
      *
-     * @param string $sIp Allows to speciy another IP address than the client one.
+     * @param string|null $sIp Allows to specify another IP address than the client one.
      *
      * @return string IP address. If the IP format is invalid, returns '0.0.0.0'
      */
@@ -35,16 +36,16 @@ class Ip
         }
 
         if (static::isPrivate($sIp)) {
-            $sIp = '127.0.0.1'; // Avoid invalid local IP for GeoIp
+            $sIp = static::DEFAULT_IP; // Avoid invalid local IP for GeoIp
         }
 
-        return preg_match('/^' . static::IP_PATTERN . '$/', $sIp) ? $sIp : '127.0.0.1';
+        return preg_match('/^' . static::IP_PATTERN . '$/', $sIp) ? $sIp : static::DEFAULT_IP;
     }
 
     /**
      * Returns the API IP with the IP address.
      *
-     * @param string $sIp IP address. Allows to speciy a specific IP.
+     * @param string|null $sIp IP address. Allows to specify a specific IP.
      *
      * @return string API URL with the IP address.
      */
@@ -60,11 +61,15 @@ class Ip
      *
      * @param string $sIp The IP address.
      *
-     * @return boolean Returns TRUE is it's a private IP, FALSE otherwite.
+     * @return bool Returns TRUE is it's a private IP, FALSE otherwite.
      */
     public static function isPrivate($sIp)
     {
-        return filter_var($sIp, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_IPV6 | FILTER_FLAG_NO_PRIV_RANGE |  FILTER_FLAG_NO_RES_RANGE) ? false : true;
+        return filter_var(
+            $sIp,
+            FILTER_VALIDATE_IP,
+            FILTER_FLAG_IPV4 | FILTER_FLAG_IPV6 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+        ) ? false : true;
     }
 
     /**
@@ -74,7 +79,7 @@ class Ip
     {
         $aVars = [Server::HTTP_CLIENT_IP, Server::HTTP_X_FORWARDED_FOR, Server::REMOTE_ADDR];
         foreach ($aVars as $sVar) {
-            if (null !== Server::getVar($sVar)) {
+            if (Server::getVar($sVar) !== null) {
                 return Server::getVar($sVar);
             }
         }

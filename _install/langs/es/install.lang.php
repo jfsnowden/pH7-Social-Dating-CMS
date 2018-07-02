@@ -3,7 +3,7 @@
  * @title            Spanish Language File
  *
  * @author           Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright        (c) 2013-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2013-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / Lang / ES
  */
@@ -30,6 +30,8 @@ $LANG = array(
     'next' => 'Próximo',
     'go' => 'Siguiente Paso =>',
     'later' => 'Más tarde ...',
+    'license' => 'Licencia',
+    'license_desc' => '¡Por favor, lea cuidadosamente la licencia y acéptelo para continuar la instalación del software.',
     'register' => '¡Guárdelo!',
     'site_name' => 'Nombre de tu sitio',
     'agree_license' => 'He leído y acepto los términos anteriores.',
@@ -40,16 +42,16 @@ $LANG = array(
     'config_system' => '¡Configuración del sistema CMS!',
     'finish' => '¡Finalizar la instalación!',
     'go_your_site' => '¡Vaya a su nuevo sitio web!',
-    'go_your_admin_panel' => '¡Ve a tu panel de administración!',
+    'go_your_admin_panel' => 'Ve a tu panel de administración',
     'error_page_not_found' => 'Página no encontrada',
     'error_page_not_found_desc' => 'Lo sentimos, pero la página que busca no se pudo encontrar.',
     'no_protected_exist' => 'Lo sentimos, pero no hemos encontrado el directorio &laquo;protected&raquo;.',
     'no_protected_readable' => 'Cambie los permisos del directorio &laquo;protected&raquo; en el modo de lectura (CHMOD 755).',
-    'no_public_writable' => 'Cambie los permisos del directorio &laquo;public&raquo; en el modo de escritura (CHMOD 777).',
+    'no_public_writable' => 'Cambie los permisos del directorio &laquo;raíz&raquo; en el modo de escritura (CHMOD 777).',
     'no_app_config_writable' => 'Cambie los permisos del directorio &laquo;protected/app/configs&raquo; en el modo de escritura (CHMOD 777).',
     'database_error' => 'Error al conectar con la base de datos.<br />',
     'error_sql_import' => 'Se produjo un error al importar el archivo en su base de datos SQL',
-    'require_mysql_version' => 'Debe instalar MySQL ' . PH7_REQUIRE_SQL_VERSION . ' o superior para poder continuar.',
+    'require_mysql_version' => 'Debe instalar MySQL ' . PH7_REQUIRED_SQL_VERSION . ' o superior para poder continuar.',
     'field_required' => 'Este campo es obligatorio',
     'all_fields_mandatory' => 'Todos los campos marcados con un asterisco (*) son obligatorios',
     'db_hostname' => 'Nombre de host del servidor de base de datos',
@@ -99,8 +101,8 @@ $LANG = array(
         <p>P.D. Para informes de errores, sugerencias, colaboración, participación en el desarrollo y / o traducción de software, etc,
             por favor visite nuestro <a href="' . Controller::SOFTWARE_WEBSITE . '">sitio web</a>.</p>
         <p>---</p>
-        <p>Saludos cordiales,</p>
-        <p>El equipo de desarrolladores pH7CMS.</p>',
+        <p>Saludos cordiales,<br />
+        <a href="' . Controller::AUTHOR_URL . '">Pierre Soria</a></p>',
     'yes_dir' => '¡El directorio se encuentra correctamente!',
     'no_dir' => 'El directorio no existe.',
     'wait_importing_database' => 'Espere al importar la base de datos por favor.<br />
@@ -118,6 +120,9 @@ $LANG = array(
     'recommended' => 'Recomendada',
     'recommended_desc' => 'Elegir este lugar si no sabe qué elegir el recreo.',
     'note_able_to_change_niche_settings_later' => 'Por favor, tenga en cuenta que puede cambiar el tema y activar/desactivar los módulos más tarde en su panel de administración.',
+    'will_you_make_donation' => '¿Me ayudarás a mantener &amp; mejorar el software?',
+    'donate_here' => 'Haz una donación aquí',
+    'or_paypal_donation' => 'o por PayPal',
     'warning_no_js' => 'Esta página web no es compatible sin tener Javascript activado.<br />
         Por favor, activa JavaScript en las opciones de su navegador web.',
     'admin_url' => 'URL del panel de administración',

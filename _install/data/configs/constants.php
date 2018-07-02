@@ -3,7 +3,7 @@
  * @title            Constants
  *
  * @author           Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright        (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @link             http://ph7cms.com
  * @package          PH7
@@ -42,6 +42,7 @@ define('PH7_SH', '/'); // SlasH
 define('PH7_SELF', (substr($sPhp_self, -1) !== PH7_SH) ? $sPhp_self . PH7_SH : $sPhp_self);
 define('PH7_RELATIVE', PH7_SELF);
 
+
 #################### PATH ####################
 
 define('PH7_PATH_ROOT', __DIR__ . PH7_DS);
@@ -49,6 +50,7 @@ define('PH7_PATH_PROTECTED', '%path_protected%');
 define('PH7_PATH_APP', PH7_PATH_PROTECTED . 'app/');
 define('PH7_PATH_FRAMEWORK', PH7_PATH_PROTECTED . 'framework/');
 define('PH7_PATH_LIBRARY', PH7_PATH_PROTECTED . 'library/');
+
 
 #################### URL (PUBLIC) ####################
 

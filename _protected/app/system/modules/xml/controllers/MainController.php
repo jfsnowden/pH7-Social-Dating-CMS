@@ -1,14 +1,17 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Xml / Controller
  */
+
 namespace PH7;
 
 class MainController extends Controller
 {
+    const STATIC_CACHE_LIFETIME = 86400; // 86400 secs = 24 hours
+
     /** @var DataCoreModel */
     protected $oDataModel;
 
@@ -29,7 +32,7 @@ class MainController extends Controller
 
         /* Enable caching for all pages of this module */
         $this->view->setCaching(true);
-        $this->view->setCacheExpire(3600*24); // 24 hours
+        $this->view->setCacheExpire(self::STATIC_CACHE_LIFETIME);
     }
 
     public function xslLayout()
@@ -49,7 +52,7 @@ class MainController extends Controller
      *
      * @return void
      */
-    protected function _xmlRouter($sAction, $mParam = null)
+    protected function generateXmlRouter($sAction, $mParam = null)
     {
         $this->view->members = $this->oDataModel->getProfiles();
         $this->view->blogs = $this->oDataModel->getBlogs();
@@ -63,37 +66,7 @@ class MainController extends Controller
         $this->view->games = $this->oDataModel->getGames();
 
         // For the Comments
-        switch ($sAction) {
-            case 'comment-profile':
-                $this->view->table = 'profile';
-                $this->view->comments = (!empty($mParam) && is_numeric($mParam)) ? $this->oDataModel->getRecipientCommentsProfiles($mParam) : $this->view->comments = $this->oDataModel->getCommentsProfiles();
-            break;
-
-            case 'comment-blog':
-                $this->view->table = 'blog';
-                $this->view->comments = (!empty($mParam) && is_numeric($mParam)) ? $this->oDataModel->getRecipientCommentsBlogs($mParam) : $this->view->comments = $this->oDataModel->getCommentsBlogs();
-            break;
-
-            case 'comment-note':
-                $this->view->table = 'note';
-                $this->view->comments = (!empty($mParam) && is_numeric($mParam)) ? $this->oDataModel->getRecipientCommentsNotes($mParam) : $this->oDataModel->getCommentsNotes();
-            break;
-
-            case 'comment-picture':
-                $this->view->table = 'picture';
-                $this->view->comments = (!empty($mParam) && is_numeric($mParam)) ? $this->oDataModel->getRecipientCommentsPictures($mParam) : $this->oDataModel->getCommentsPictures();
-            break;
-
-            case 'comment-video':
-                $this->view->table = 'video';
-                $this->view->comments = (!empty($mParam) && is_numeric($mParam)) ? $this->oDataModel->getRecipientCommentsVideos($mParam) : $this->oDataModel->getCommentsVideos();
-            break;
-
-            case 'comment-game':
-                $this->view->table = 'game';
-                $this->view->comments = (!empty($mParam) && is_numeric($mParam)) ? $this->oDataModel->getRecipientCommentsGames($mParam) : $this->view->comments = $this->oDataModel->getCommentsGames();
-            break;
-        }
+        $this->generateCommentRouter($sAction, $mParam);
     }
 
     protected function xmlOutput()
@@ -110,5 +83,56 @@ class MainController extends Controller
     protected function setContentType()
     {
         header('Content-Type: text/xml; charset=' . PH7_ENCODING);
+    }
+
+    /**
+     * @param mixed $mParam
+     *
+     * @return bool
+     */
+    protected function isParamValid($mParam)
+    {
+        return !empty($mParam) && is_numeric($mParam);
+    }
+
+    /**
+     * @param string $sAction
+     * @param mixed $mParam
+     *
+     * @return void
+     */
+    private function generateCommentRouter($sAction, $mParam)
+    {
+        switch ($sAction) {
+            case 'comment-profile':
+                $this->view->table = 'profile';
+                $this->view->comments = $this->isParamValid($mParam) ? $this->oDataModel->getRecipientCommentsProfiles($mParam) : $this->view->comments = $this->oDataModel->getCommentsProfiles();
+                break;
+
+            case 'comment-blog':
+                $this->view->table = 'blog';
+                $this->view->comments = $this->isParamValid($mParam) ? $this->oDataModel->getRecipientCommentsBlogs($mParam) : $this->view->comments = $this->oDataModel->getCommentsBlogs();
+                break;
+
+            case 'comment-note':
+                $this->view->table = 'note';
+                $this->view->comments = $this->isParamValid($mParam) ? $this->oDataModel->getRecipientCommentsNotes($mParam) : $this->oDataModel->getCommentsNotes();
+                break;
+
+            case 'comment-picture':
+                $this->view->table = 'picture';
+                $this->view->comments = $this->isParamValid($mParam) ? $this->oDataModel->getRecipientCommentsPictures($mParam) : $this->oDataModel->getCommentsPictures();
+                break;
+
+            case 'comment-video':
+                $this->view->table = 'video';
+                $this->view->comments = $this->isParamValid($mParam) ? $this->oDataModel->getRecipientCommentsVideos($mParam) : $this->oDataModel->getCommentsVideos();
+                break;
+
+            case 'comment-game':
+                $this->view->table = 'game';
+                $this->view->comments = $this->isParamValid($mParam) ? $this->oDataModel->getRecipientCommentsGames($mParam) : $this->view->comments = $this->oDataModel->getCommentsGames();
+                break;
+        }
     }
 }

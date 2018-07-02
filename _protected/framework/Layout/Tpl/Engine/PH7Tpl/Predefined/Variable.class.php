@@ -4,14 +4,12 @@
  * @desc             We define variables.
  *                   Predefined variables can save considerable resources and speeds up the code with respect to variables assigned by through the object's template engine (PH7Tpl).
  *
- * @updated          Last Update 07/02/16 11:02
  * @author           Pierre-Henry Soria <ph7software@gmail.com>
  * @category         PH7 Template Engine
  * @package          PH7 / Framework / Layout / Tpl / Engine / PH7Tpl / Predefined
- * @copyright        (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @version          1.0.2
  * @license          CC-BY License - http://creativecommons.org/licenses/by/3.0/
- *
  ***************************************************************************/
 
 namespace PH7\Framework\Layout\Tpl\Engine\PH7Tpl\Predefined;
@@ -29,11 +27,9 @@ class Variable extends Predefined
         $this->addVar('software_name', 'self::SOFTWARE_NAME');
         $this->addVar('software_url', 'self::SOFTWARE_WEBSITE');
         $this->addVar('software_doc_url', 'self::SOFTWARE_DOC_URL');
-        $this->addVar('software_faq_url', 'self::SOFTWARE_FAQ_URL');
-        $this->addVar('software_forum_url', 'self::SOFTWARE_FORUM_URL');
-        $this->addVar('software_license_url', 'self::SOFTWARE_LICENSE_KEY_URL');
+        $this->addVar('software_issue_url', 'self::SOFTWARE_ISSUE_URL');
+        $this->addVar('software_review_url', 'self::SOFTWARE_REVIEW_URL');
         $this->addVar('software_version', 'self::SOFTWARE_VERSION');
-        $this->addVar('is_valid_license', 'PH7_VALID_LICENSE');
 
         /***** URL *****/
         $this->addVar('url_root', '$this->registry->site_url');

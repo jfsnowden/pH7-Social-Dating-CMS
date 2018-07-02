@@ -1,6 +1,6 @@
 /*
  * Author:        Pierre-Henry Soria <ph7software@gmail.com>
- * Copyright:     (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * Copyright:     (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * License:       GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  */
 
@@ -12,7 +12,7 @@ function report(sType, iReportId, sCSRFToken) {
     }, function (oResponseData) {
         if (oResponseData.status == 1) {
             $('.msg').addClass('alert alert-success');
-            $('#report_' + iReportId).hide("slow");
+            $('#report_' + iReportId).hide('slow');
         } else {
             $('.msg').addClass('alert alert-danger');
         }

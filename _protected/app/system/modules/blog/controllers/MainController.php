@@ -1,7 +1,7 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Blog / Controller
  */
@@ -9,11 +9,13 @@
 namespace PH7;
 
 use PH7\Framework\Analytics\Statistic;
+use PH7\Framework\Cache\Cache;
 use PH7\Framework\Http\Http;
 use PH7\Framework\Mvc\Router\Uri;
 use PH7\Framework\Navigation\Page;
 use PH7\Framework\Parse\Emoticon;
 use PH7\Framework\Url\Header;
+use stdClass;
 
 class MainController extends Controller
 {
@@ -22,6 +24,7 @@ class MainController extends Controller
     const ITEMS_MENU_TOP_VIEWS = 5;
     const ITEMS_MENU_TOP_RATING = 5;
     const ITEMS_MENU_CATEGORIES = 10;
+    const MAX_CATEGORIES = 300;
 
     /** @var BlogModel */
     protected $oBlogModel;
@@ -52,7 +55,9 @@ class MainController extends Controller
         );
         $this->view->current_page = $this->oPage->getCurrentPage();
         $oPosts = $this->oBlogModel->getPosts(
-            $this->oPage->getFirstItem(), $this->oPage->getNbItemsPerPage()
+            $this->oPage->getFirstItem(),
+            $this->oPage->getNbItemsPerPage(),
+            SearchCoreModel::CREATED
         );
         $this->setMenuVars();
 
@@ -72,7 +77,7 @@ class MainController extends Controller
         if (!empty($sPostId)) {
             $oPost = $this->oBlogModel->readPost($sPostId);
 
-            if (!empty($oPost->postId) && $this->str->equals($sPostId, $oPost->postId)) {
+            if ($oPost && $this->doesPostExist($sPostId, $oPost)) {
                 $aVars = [
                     /***** META TAGS *****/
                     'page_title' => $oPost->pageTitle,
@@ -89,7 +94,7 @@ class MainController extends Controller
                     'blog_id' => $oPost->blogId,
                     'h1_title' => $oPost->title,
                     'content' => Emoticon::init($oPost->content),
-                    'categories' => $this->oBlogModel->getCategory($oPost->blogId, 0, 300),
+                    'categories' => $this->oBlogModel->getCategory($oPost->blogId, 0, self::MAX_CATEGORIES),
                     'enable_comment' => $oPost->enableComment,
 
                     /** Date **/
@@ -99,7 +104,7 @@ class MainController extends Controller
                 $this->view->assigns($aVars);
 
                 // Set Blogs Post Views Statistics
-                Statistic::setView($oPost->blogId, 'Blogs');
+                Statistic::setView($oPost->blogId, DbTableName::BLOG);
             } else {
                 $this->sTitle = t('No Blog Found');
                 $this->notFound();
@@ -194,11 +199,33 @@ class MainController extends Controller
     }
 
     /**
+     * Set a custom Not Found Error Message with HTTP 404 Code Status.
+     *
+     * @param bool $b404Status For the Ajax blocks and others, we can not put HTTP error code 404, so the attribute must be set to FALSE
+     *
+     * @return void
+     */
+    protected function notFound($b404Status = true)
+    {
+        if ($b404Status) {
+            Http::setHeadersByCode(self::HTTP_NOT_FOUND_CODE);
+        }
+
+        $this->view->page_title = $this->view->h2_title = $this->sTitle;
+
+        $this->view->error = t("Sorry, we weren't able to find the page you requested.") . '<br />' .
+            t('You can go back on the <a href="%0%">blog homepage</a> or <a href="%1%">search with different keywords</a>.',
+                Uri::get('blog', 'main', 'index'),
+                Uri::get('blog', 'main', 'search')
+            );
+    }
+
+    /**
      * Sets the Menu Variables for the template.
      *
      * @return void
      */
-    protected function setMenuVars()
+    private function setMenuVars()
     {
         $this->view->top_views = $this->oBlogModel->getPosts(
             0,
@@ -211,33 +238,52 @@ class MainController extends Controller
             SearchCoreModel::RATING
         );
 
-        $this->view->categories = $this->oBlogModel->getCategory(
-            null,
-            0,
-            self::ITEMS_MENU_CATEGORIES,
-            true
-        );
+        $this->view->categories = $this->getCategoryList();
     }
 
     /**
-     * Set a custom Not Found Error Message with HTTP 404 Code Status.
-     *
-     * @param boolean $b404Status For the Ajax blocks and others, we can not put HTTP error code 404, so the attribute must be set to FALSE
-     *
-     * @return void
+     * @return array
      */
-    protected function notFound($b404Status = true)
+    private function getCategoryList()
     {
-        if ($b404Status) {
-            Http::setHeadersByCode(404);
+        $oCache = (new Cache)->start(BlogModel::CACHE_GROUP, 'categorylist', BlogModel::CACHE_LIFETIME);
+
+        if (!$aData = $oCache->get()) {
+            $aCategoryList = $this->oBlogModel->getCategory(null, 0, self::MAX_CATEGORIES);
+
+            $aData = [];
+            foreach ($aCategoryList as $oCategory) {
+                $iTotalPostsPerCat = $this->oBlogModel->category(
+                    $oCategory->name,
+                    true,
+                    SearchCoreModel::TITLE,
+                    SearchCoreModel::ASC,
+                    0,
+                    self::MAX_CATEGORIES
+                );
+
+                if ($iTotalPostsPerCat > 0 && count($aData) < self::ITEMS_MENU_CATEGORIES) {
+                    $oData = new stdClass();
+                    $oData->totalBlogs = $iTotalPostsPerCat;
+                    $oData->name = $oCategory->name;
+                    $aData[] = $oData;
+                }
+            }
+            $oCache->put($aData);
         }
+        unset($oCache);
 
-        $this->view->page_title = $this->view->h2_title = $this->sTitle;
+        return $aData;
+    }
 
-        $this->view->error = t("Sorry, we weren't able to find the page you requested.") . '<br />' .
-            t('You can go back on the <a href="%0%">blog homepage</a> or <a href="%1%">search with different keywords</a>.',
-                Uri::get('blog', 'main', 'index'),
-                Uri::get('blog', 'main', 'search')
-            );
+    /**
+     * @param string $sPostId
+     * @param stdClass $oPost
+     *
+     * @return bool
+     */
+    private function doesPostExist($sPostId, stdClass $oPost)
+    {
+        return !empty($oPost->postId) && $this->str->equals($sPostId, $oPost->postId);
     }
 }

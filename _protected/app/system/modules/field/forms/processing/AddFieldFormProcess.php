@@ -1,21 +1,20 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2013-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2013-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Field / Form / Processing
  */
 
 namespace PH7;
+
 defined('PH7') or exit('Restricted access');
 
-use PH7\Framework\Cache\Cache;
 use PH7\Framework\Mvc\Router\Uri;
 use PH7\Framework\Url\Header;
 
 class AddFieldFormProcess extends Form
 {
-
     public function __construct()
     {
         parent::__construct();
@@ -32,12 +31,18 @@ class AddFieldFormProcess extends Form
             $bRet = (new FieldModel(Field::getTable($sMod), $sName, $sType, $iLength, $sDefVal))->insert();
 
             if ($bRet) {
-                /* Clean UserCoreModel Cache */
-                (new Cache)->start(UserCoreModel::CACHE_GROUP, null, null)->clear();
-                Header::redirect(Uri::get('field', 'field', 'all', $sMod), t('The field has been added.'));
-            } else
-                \PFBC\Form::setError('form_add_field', t('Oops! An error occurred while adding the field, please try again.'));
+                Field::clearCache();
+
+                Header::redirect(
+                    Uri::get('field', 'field', 'all', $sMod),
+                    t('The field has been added.')
+                );
+            } else {
+                \PFBC\Form::setError(
+                    'form_add_field',
+                    t('Oops! An error occurred while adding the field, please try again.')
+                );
+            }
         }
     }
-
 }

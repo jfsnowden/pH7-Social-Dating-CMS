@@ -4,7 +4,7 @@
  *
  * @author         Pierre-Henry Soria <hello@ph7cms.com>
  * @link           http://ph7cms.com
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / Config
  */
@@ -21,13 +21,15 @@ defined('PH7') or exit('Restricted access');
 
 define('PH7_DOT', '.');
 
+define('PH7_ELLIPSIS', '...');
+
 /***** TIME ZONE ****/
 
 define('PH7_DEFAULT_TIMEZONE', 'America/Chicago');
 
 /***** ADMIN MODULE NAME *****/
 
-define('PH7_ADMIN_MOD', 'admin123');
+define('PH7_ADMIN_MOD', 'admin123'); // http://ph7cms.com/doc/en/rename-the-admin-folder
 
 /***** PATTERN USERNAME (for 'Members', 'Affiliates' and 'Admins') *****/
 
@@ -58,19 +60,19 @@ define('PH7_MAX_URL_LENGTH', 120);
 
 /***** DESIGN *****/
 
-define('PH7_WIDTH_SEARCH_FORM', '156px');
+define('PH7_WIDTH_SEARCH_FORM', '168px');
 
 /***** SECURITY *****/
 
 /*** DDoS Attack ***/
 define('PH7_DDOS_DELAY_SLEEP', 40);
 define('PH7_DDOS_MAX_COOKIE_PAGE_LOAD', 99999999);
-define('PH7_DDOS_MAX_SESSION_PAGE_LOAD', 999);
+define('PH7_DDOS_MAX_SESSION_PAGE_LOAD', 1500);
 
 
 /***** TABLE PREFIX *****/
 
-define('PH7_TABLE_PREFIX', 'pH7_'); // Warning: don't change this value!
+define('PH7_TABLE_PREFIX', 'ph7_'); // Warning, don't change this value!
 
 /***** PAGE *****/
 

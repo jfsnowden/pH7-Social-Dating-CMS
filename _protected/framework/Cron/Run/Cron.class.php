@@ -4,7 +4,7 @@
  * @desc             Generic class for the Periodic Cron.
  *
  * @author           Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright        (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / Framework / Cron / Run
  */
@@ -18,7 +18,15 @@ use PH7\Framework\Url\Uri;
 
 abstract class Cron extends Core
 {
+    const URI_INDEX_FILENAME = 3;
+    const URI_INDEX_DELAY = 2;
+    const HOUR_IN_SECS = 3600;
+    const DELAY_FILE_EXT = '.txt';
+
+    /** @var int */
     protected $iTime;
+
+    /** @var Uri */
     private $oUri;
 
     public function __construct()
@@ -30,11 +38,11 @@ abstract class Cron extends Core
     }
 
     /**
-     * @return boolean Returns TRUE if the delay is valid, otherwise FALSE.
+     * @return bool Returns TRUE if the delay is valid, otherwise FALSE.
      */
     public function checkDelay()
     {
-        $sFullPath = PH7_PATH_SYS . 'core/assets/cron/_delay/' . $this->getFileName() . '.txt';
+        $sFullPath = PH7_PATH_SYS . 'core/assets/cron/_delay/' . $this->getFileName() . self::DELAY_FILE_EXT;
         $bStatus = true; // Default status is TRUE
 
         if ($this->file->existFile($sFullPath)) {
@@ -62,7 +70,7 @@ abstract class Cron extends Core
      */
     protected function getFileName()
     {
-        return strtolower($this->oUri->fragment(3));
+        return strtolower($this->oUri->fragment(self::URI_INDEX_FILENAME));
     }
 
     /**
@@ -75,7 +83,7 @@ abstract class Cron extends Core
         /**
          * @internal We cast the value into integer type to get only the integer data (without the 'h' character).
          */
-        return (int)$this->oUri->fragment(2);
+        return (int)$this->oUri->fragment(self::URI_INDEX_DELAY);
     }
 
     /**
@@ -85,6 +93,6 @@ abstract class Cron extends Core
      */
     private function convertHoursToSeconds($iHours)
     {
-        return $iHours * 3600;
+        return $iHours * self::HOUR_IN_SECS;
     }
 }

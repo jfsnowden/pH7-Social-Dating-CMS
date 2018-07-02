@@ -4,7 +4,7 @@
  * @desc           Generate Fake Profiles from Web API.
  *
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2014-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2014-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Admin / From / Processing
  */
@@ -27,29 +27,38 @@ class AddFakeProfilesFormProcess extends Form
     const API_URL = 'http://api.randomuser.me';
     const API_VER = '1.1';
 
+    /** @var Validate */
+    private $oValidate;
+
+    /** @var ExistsCoreModel */
+    private $oExistsModel;
+
     public function __construct()
     {
         parent::__construct();
 
         $oUser = new UserCore;
         $oUserModel = new UserCoreModel;
-        $oExistsModel = new ExistsCoreModel;
-        $oValidate = new Validate;
+        $this->oExistsModel = new ExistsCoreModel;
+        $this->oValidate = new Validate;
 
         foreach ($this->getApiClient()['results'] as $aUser) {
             $sEmail = trim($aUser['email']);
             $sUsername = trim($aUser['login']['username']);
 
-            if ($oValidate->email($sEmail) && !$oExistsModel->email($sEmail) && $oValidate->username($sUsername)) {
+            if ($this->isValidProfile($sEmail, $sUsername)) {
                 $aData = $this->storeUserDataIntoArray($sUsername, $sEmail, $aUser, $oUser);
                 $aData['profile_id'] = $oUserModel->add(escape($aData, true));
                 $this->addAvatar($aData, $oUser);
             }
         }
 
-        unset($oUser, $oUserModel, $oExistsModel, $oValidate, $aUser, $aData);
+        unset($oUser, $oUserModel, $aData);
 
-        \PFBC\Form::setSuccess('form_add_fake_profiles', nt('%n% user has successfully been added.', '%n% users have successfully been added.', $this->getUserNumber()));
+        \PFBC\Form::setSuccess(
+            'form_add_fake_profiles',
+            nt('%n% user has successfully been added.', '%n% users have successfully been added.', $this->getUserNumber())
+        );
     }
 
     protected function getUserNumber()
@@ -111,7 +120,8 @@ class AddFakeProfilesFormProcess extends Form
         }
 
         // Create a temporary file before creating the avatar images
-        $sTmpFile = PH7_PATH_TMP . PH7_DS . uniqid(mt_rand(), true) . sha1($aData['avatar']) . '.tmp';
+        $sUniqIdPrefix = (string)mt_rand();
+        $sTmpFile = PH7_PATH_TMP . PH7_DS . uniqid($sUniqIdPrefix, true) . sha1($aData['avatar']) . '.tmp';
         $this->file->putFile($sTmpFile, $rFile);
 
         // Create different avatar sizes, save them and set the avatar into the DB
@@ -148,5 +158,17 @@ class AddFakeProfilesFormProcess extends Form
         $aData['ip'] = Ip::get();
 
         return $aData;
+    }
+
+    /**
+     * @param string $sEmail
+     * @param string $sUsername
+     *
+     * @return bool
+     */
+    private function isValidProfile($sEmail, $sUsername)
+    {
+        return $this->oValidate->email($sEmail) && !$this->oExistsModel->email($sEmail) &&
+            $this->oValidate->username($sUsername);
     }
 }

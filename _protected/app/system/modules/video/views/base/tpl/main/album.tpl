@@ -1,12 +1,12 @@
 {if empty($error)}
     {each $a in $album}
         {* Set Video Album Statistics *}
-        {{ Framework\Analytics\Statistic::setView($a->albumId, 'AlbumsVideos') }}
+        {{ Framework\Analytics\Statistic::setView($a->albumId, DbTableName::ALBUM_VIDEO) }}
 
         <div class="m_photo center">
             {{ $absolute_url = Framework\Mvc\Router\Uri::get('video','main','video',"$a->username,$a->albumId,$a->title,$a->videoId") }}
             <h4><a href="{absolute_url}">{% substr(Framework\Security\Ban\Ban::filterWord($a->title),0,25) %}</a></h4>
-            {{ VideoDesign::generate($a, 'preview', '100%', 400) }}
+            {{ VideoDesign::generate($a, VideoDesign::PREVIEW_MEDIA_MODE, '100%', 400) }}
 
             {if $is_user_auth AND $member_id == $a->profileId}
                 <div class="small">
@@ -15,7 +15,7 @@
                 </div>
             {/if}
             <p>
-                {{ RatingDesignCore::voting($a->videoId,'Videos') }}
+                {{ RatingDesignCore::voting($a->videoId,DbTableName::VIDEO) }}
                 {{ $design->like($a->username,$a->firstName,$a->sex,$absolute_url) }} | {{ $design->report($a->profileId, $a->username, $a->firstName, $a->sex) }}
             </p>
         </div>

@@ -1,7 +1,7 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Core / Model
  */
@@ -9,46 +9,49 @@
 namespace PH7;
 
 use PH7\Framework\Mvc\Model\Engine\Db;
+use PH7\Framework\Mvc\Model\Engine\Model;
 
-class FriendCoreModel extends Framework\Mvc\Model\Engine\Model
+class FriendCoreModel extends Model
 {
+    const ALL_REQUEST = 'all';
+
     /**
      * "Get" and "Find" "Friends" or "Mutual Friends"
      *
-     * @param integer $iIdProfileId User ID
-     * @param integer $iFriendId Enter a user Friend ID to find a mutual friend in the friends list or null = the whole list. Default is NULL
-     * @param integet|string $mLooking Integer for profile ID or string for a keyword
-     * @param boolean $bCount Put 'true' for count friends or 'false' for the result of friends
+     * @param int $iIdProfileId User ID
+     * @param int $iFriendId Enter a user Friend ID to find a mutual friend in the friends list or null = the whole list. Default is NULL
+     * @param int|string $mLooking Integer for profile ID or string for a keyword
+     * @param bool $bCount Put 'true' for count friends or 'false' for the result of friends
      * @param string $sOrderBy
-     * @param integer $iSort
-     * @param integer $iOffset
-     * @param integer $iLimit
-     * @param integer|string $mPending 'all' = approved and pending, 1 = approved or 0 = pending friend requests. Default value is 'all'
+     * @param int $iSort
+     * @param int $iOffset
+     * @param int $iLimit
+     * @param int|string $mPending 'all' = approved and pending, 1 = approved or 0 = pending friend requests. Default value is 'all'
      *
-     * @return integer|\stdClass Integer for the number friends returned or string for the friends list returned)
+     * @return int|array Integer for the number friends returned or an array containing a stdClass object with the friends list)
      */
-    public function get($iIdProfileId, $iFriendId = null, $mLooking, $bCount, $sOrderBy, $iSort, $iOffset, $iLimit, $mPending = 'all')
+    public function get($iIdProfileId, $iFriendId = null, $mLooking, $bCount, $sOrderBy, $iSort, $iOffset, $iLimit, $mPending = self::ALL_REQUEST)
     {
         $bCount = (bool)$bCount;
         $iOffset = (int)$iOffset;
         $iLimit = (int)$iLimit;
         $mLooking = trim($mLooking);
 
-        $sSqlLimit = (!$bCount) ? 'LIMIT :offset, :limit' : '';
+        $sSqlLimit = !$bCount ? 'LIMIT :offset, :limit' : '';
+
+        $sSqlSelect = 'COUNT(f.friendId) AS totalFriends';
         if (!$bCount) {
             $sSqlSelect = '(f.profileId + f.friendId - :profileId) AS fdId, f.*, m.username, m.firstName, m.sex';
-        } else {
-            $sSqlSelect = 'COUNT(f.friendId) AS totalFriends';
         }
 
         $sSqlWhere = '(f.profileId = :profileId OR f.friendId = :profileId)';
         if (!empty($iFriendId)) {
             $sSqlWhere = 'f.profileId IN
            (SELECT * FROM (SELECT (m.profileId)
-           FROM ' . Db::prefix('MembersFriends') . ' AS m
+           FROM ' . Db::prefix(DbTableName::MEMBER_FRIEND) . ' AS m
            WHERE (m.friendId IN(:profileId, :friendId))
            UNION ALL
-               SELECT (f.friendId) FROM ' . Db::prefix('MembersFriends') . ' AS f
+               SELECT (f.friendId) FROM ' . Db::prefix(DbTableName::MEMBER_FRIEND) . ' AS f
                WHERE (f.profileId IN(:profileId, :friendId))) AS fd
                GROUP BY fd.profileId HAVING COUNT(fd.profileId) > 1)';
         }
@@ -61,8 +64,8 @@ class FriendCoreModel extends Framework\Mvc\Model\Engine\Model
         $sSqlOrder = SearchCoreModel::order($sOrderBy, $iSort);
 
         $rStmt = Db::getInstance()->prepare(
-            'SELECT ' . $sSqlSelect . ' FROM' . Db::prefix('MembersFriends') . 'AS f INNER JOIN' . Db::prefix('Members') .
-            'AS m ON m.profileId = (f.profileId + f.friendId - :profileId) WHERE ' . $sSqlWhere . ' AND ' . $sSqlSearchWhere .
+            'SELECT ' . $sSqlSelect . ' FROM' . Db::prefix(DbTableName::MEMBER_FRIEND) . 'AS f INNER JOIN' . Db::prefix(DbTableName::MEMBER) .
+            'AS m ON m.profileId = (f.profileId + f.friendId - :profileId) WHERE m.ban = 0 AND ' . $sSqlWhere . ' AND ' . $sSqlSearchWhere .
             $sSqlOrder . $sSqlLimit
         );
 
@@ -78,7 +81,7 @@ class FriendCoreModel extends Framework\Mvc\Model\Engine\Model
             $rStmt->bindValue(':friendId', $iFriendId, \PDO::PARAM_INT);
         }
 
-        if ($mPending !== 'all') {
+        if ($mPending !== self::ALL_REQUEST) {
             $rStmt->bindValue(':pending', $mPending, \PDO::PARAM_INT);
         }
 
@@ -95,7 +98,7 @@ class FriendCoreModel extends Framework\Mvc\Model\Engine\Model
         } else {
             $oRow = $rStmt->fetch(\PDO::FETCH_OBJ);
             Db::free($rStmt);
-            $mData = (int) $oRow->totalFriends;
+            $mData = (int)$oRow->totalFriends;
             unset($oRow);
         }
 
@@ -105,14 +108,14 @@ class FriendCoreModel extends Framework\Mvc\Model\Engine\Model
     /**
      * Get Pending Friend.
      *
-     * @param integer $iFriendId
+     * @param int $iFriendId
      *
-     * @return integer
+     * @return int
      */
     public static function getPending($iFriendId)
     {
         $rStmt = Db::getInstance()->prepare('SELECT COUNT(pending) AS pendingFds FROM' .
-            Db::prefix('MembersFriends') . 'WHERE friendId = :friendId AND pending = \'1\'');
+            Db::prefix(DbTableName::MEMBER_FRIEND) . 'WHERE friendId = :friendId AND pending = \'1\'');
 
         $rStmt->bindValue(':friendId', $iFriendId, \PDO::PARAM_INT);
         $rStmt->execute();
@@ -125,13 +128,14 @@ class FriendCoreModel extends Framework\Mvc\Model\Engine\Model
     /**
      * Count total friends.
      *
-     * @param integer $iProfileId
+     * @param int $iProfileId
      *
-     * @return integer
+     * @return int
      */
     public static function total($iProfileId)
     {
-        $rStmt = Db::getInstance()->prepare('SELECT COUNT(friendId) AS totalFds FROM' . Db::prefix('MembersFriends') .
+        $rStmt = Db::getInstance()->prepare('SELECT COUNT(friendId) AS totalFds FROM' .
+            Db::prefix(DbTableName::MEMBER_FRIEND) .
             'WHERE (profileId = :profileId OR friendId= :profileId)');
 
         $rStmt->bindValue(':profileId', $iProfileId, \PDO::PARAM_INT);

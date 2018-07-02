@@ -1,15 +1,20 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Core / Class / Design
  */
 
 namespace PH7;
 
-class UserDesignCore extends Framework\Layout\Html\Design
+use PH7\Framework\Layout\Html\Design;
+
+class UserDesignCore extends Design
 {
+    const NONE_IMG_FILENAME = 'none.svg';
+    const PENDING_IMG_FILENAME = 'pending.svg';
+
     /**
      * Ajax counter endpoint to count the number of users registered on the site.
      *

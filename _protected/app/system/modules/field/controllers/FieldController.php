@@ -1,14 +1,13 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2013-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2013-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Field / Controller
  */
 
 namespace PH7;
 
-use PH7\Framework\Cache\Cache;
 use PH7\Framework\Layout\Html\Design;
 use PH7\Framework\Mvc\Router\Uri;
 use PH7\Framework\Url\Header;
@@ -20,7 +19,9 @@ class FieldController extends Controller
 
     public function index()
     {
-        Header::redirect(Uri::get('field', 'field', 'all', 'user'));
+        Header::redirect(
+            Uri::get('field', 'field', 'all', 'user')
+        );
     }
 
     public function all($sMod = '')
@@ -67,15 +68,22 @@ class FieldController extends Controller
             $bStatus = false;
         } else {
             $bStatus = (new FieldModel(Field::getTable($sMod), $sName))->delete();
-            /* Clean UserCoreModel Cache */
             if ($bStatus) {
-                (new Cache)->start(UserCoreModel::CACHE_GROUP, null, null)->clear();
+                Field::clearCache();
             }
         }
 
-        $sMsg = ($bStatus) ? t('The field has been deleted') : t('An error occurred while deleting the field.');
-        $sMsgType = ($bStatus) ? Design::SUCCESS_TYPE : Design::ERROR_TYPE;
+        $sMsg = $bStatus ? t('The field has been deleted') : t('An error occurred while deleting the field.');
+        $sMsgType = $bStatus ? Design::SUCCESS_TYPE : Design::ERROR_TYPE;
 
-        Header::redirect(Uri::get('field', 'field', 'all', $sMod), $sMsg, $sMsgType);
+        Header::redirect(
+            Uri::get('field',
+                'field',
+                'all',
+                $sMod
+            ),
+            $sMsg,
+            $sMsgType
+        );
     }
 }

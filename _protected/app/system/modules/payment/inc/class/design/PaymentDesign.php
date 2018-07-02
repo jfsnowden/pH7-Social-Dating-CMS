@@ -3,7 +3,7 @@
  * @title          Payment Design
  *
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Payment / Inc / Class / Design
  */
@@ -17,6 +17,8 @@ use stdClass;
 
 class PaymentDesign extends Framework\Core\Core
 {
+    const DIV_CONTAINER_NAME = 'payment-form';
+
     /**
      * @param stdClass $oMembership
      *
@@ -28,7 +30,7 @@ class PaymentDesign extends Framework\Core\Core
 
         $oPayPal
             ->param('business', $this->config->values['module.setting']['paypal.email'])
-            ->param('custom', base64_encode($oMembership->groupId . '|' . $oMembership->price)) // Use base64_encode() to discourage curious people
+            ->param('custom', base64_encode($oMembership->groupId . '|' . $oMembership->price))// Use base64_encode() to discourage curious people
             ->param('amount', $oMembership->price)
             ->param('item_number', $oMembership->groupId)
             ->param('item_name', $this->registry->site_name . ' ' . $oMembership->name)
@@ -37,11 +39,11 @@ class PaymentDesign extends Framework\Core\Core
             ->param('currency_code', $this->config->values['module.setting']['currency'])
             ->param('tax_cart', $this->config->values['module.setting']['vat_rate'])
             ->param('return', Uri::get('payment', 'main', 'process', 'paypal'))
-            ->param('rm', 2) // Auto redirection in POST data
+            ->param('rm', 2)// Auto redirection in POST data
             ->param('notify_url', Uri::get('payment', 'main', 'notification', 'PH7\PayPal,' . $oMembership->groupId))
             ->param('cancel_return', Uri::get('payment', 'main', 'membership', '?msg=' . t('The payment was aborted. No charge has been taken from your account.'), false));
 
-        echo self::displayGatewayForm($oPayPal, $oMembership->name, 'PayPal');
+        $this->displayGatewayForm($oPayPal, $oMembership->name, 'PayPal');
 
         unset($oPayPal, $oMembership);
     }
@@ -88,6 +90,10 @@ class PaymentDesign extends Framework\Core\Core
      */
     public function buttonBraintree(stdClass $oMembership)
     {
+        $fPrice = $oMembership->price;
+        $sCurrency = $this->config->values['module.setting']['currency'];
+        $sLocale = PH7_LANG_NAME;
+
         Braintree::init($this->config);
         $sClientToken = Braintree_ClientToken::generate();
 
@@ -96,16 +102,18 @@ class PaymentDesign extends Framework\Core\Core
         $oBraintree = new Braintree;
         $oBraintree
             ->param('item_number', $oMembership->groupId)
-            ->param('amount', $oMembership->price);
-        echo self::displayGatewayForm($oBraintree, $oMembership->name, '<u>Braintree</u>');
+            ->param('amount', $fPrice);
+
+        $this->displayGatewayForm($oBraintree, $oMembership->name, '<u>Braintree</u>');
 
         unset($oBraintree);
 
         echo '<script>';
         echo '$(function () {';
         echo "braintree.setup('$sClientToken', 'dropin', {";
-        echo "container: 'payment-form'});";
-        echo '})';
+        echo "container: '" . self::DIV_CONTAINER_NAME . "',";
+        echo "paypal: {singleUse: true, amount: '$fPrice', currency: '$sCurrency', locale: '$sLocale'}";
+        echo '})})';
         echo '</script>';
     }
 
@@ -131,7 +139,7 @@ class PaymentDesign extends Framework\Core\Core
             ->param('c_tangible', 'N')
             ->param('x_receipt_link_url', Uri::get('payment', 'main', 'process', '2co'));
 
-        echo self::displayGatewayForm($o2CO, $oMembership->name, '2CO');
+        $this->displayGatewayForm($o2CO, $oMembership->name, '2CO');
 
         unset($o2CO);
     }
@@ -152,15 +160,19 @@ class PaymentDesign extends Framework\Core\Core
      * @param string $sMembershipName
      * @param string $sProviderName The payment provider name.
      *
-     * @return string
+     * @return void HTML output,
      */
     private function displayGatewayForm(PaymentApi $oPaymentProvider, $sMembershipName, $sProviderName)
     {
-        echo '<form action="', $oPaymentProvider->getUrl(), '" method="post">
-            <div id="payment-form"></div>',
-            $oPaymentProvider->generate(),
-            '<button class="btn btn-primary btn-md" type="submit" name="submit">', self::buyTxt($sMembershipName, $sProviderName), '</button>
-            </form>';
+        echo '<form action="', $oPaymentProvider->getUrl(), '" method="post">';
+
+        if ($oPaymentProvider instanceof Braintree) {
+            echo $this->getDivFormContainer();
+        }
+
+        echo $oPaymentProvider->generate();
+        echo '<button class="btn btn-primary btn-md" type="submit" name="submit">', $this->buyTxt($sMembershipName, $sProviderName), '</button>';
+        echo '</form>';
     }
 
     /**
@@ -171,8 +183,16 @@ class PaymentDesign extends Framework\Core\Core
      *
      * @return string
      */
-    private static function buyTxt($sMembershipName, $sProviderName)
+    private function buyTxt($sMembershipName, $sProviderName)
     {
         return t('Buy %0% with %1%!', $sMembershipName, '<b>' . $sProviderName . '</b>');
+    }
+
+    /**
+     * @return string
+     */
+    private function getDivFormContainer()
+    {
+        return '<div id="' . self::DIV_CONTAINER_NAME . '"></div>';
     }
 }

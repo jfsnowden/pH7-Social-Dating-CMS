@@ -1,7 +1,7 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Newsletter / Form / Processing
  */
@@ -27,7 +27,7 @@ class SubscriptionFormProcess extends Form
         $oSubscriptionModel = new SubscriptionModel;
         $sEmail = $this->httpRequest->post('email');
         $sName = $this->httpRequest->post('name');
-        $bIsSubscriber = (new ExistsCoreModel)->email($sEmail, 'Subscribers');
+        $bIsSubscriber = (new ExistsCoreModel)->email($sEmail, DbTableName::SUBSCRIBER);
 
         switch ($this->httpRequest->post('direction')) {
             case 'subscrire': {
@@ -37,7 +37,7 @@ class SubscriptionFormProcess extends Form
                         'email' => $sEmail,
                         'current_date' => (new CDateTime)->get()->dateTime('Y-m-d H:i:s'),
                         'ip' => Ip::get(),
-                        'hash_validation' => Various::genRnd(),
+                        'hash_validation' => Various::genRnd(null, UserCoreModel::HASH_VALIDATION_LENGTH),
                         'active' => '0',
                         'affiliated_id' => (int) (new Cookie)->get(AffiliateCore::COOKIE_NAME)
                     ];
@@ -70,21 +70,22 @@ class SubscriptionFormProcess extends Form
     }
 
     /**
-     * Send confirm email.
+     * Send a email to confirm their email address.
      *
      * @param array $aData The data details.
      *
-     * @return integer Number of recipients who were accepted for delivery.
+     * @return int Number of recipients who were accepted for delivery.
      */
     protected function sendMail(array $aData)
     {
-        $sActivateLink = Uri::get('newsletter','home','activate') . PH7_SH . $aData['email'] . PH7_SH . $aData['hash_validation'];
+        $sActivateLink = Uri::get('newsletter', 'home', 'activate') . PH7_SH . $aData['email'] . PH7_SH . $aData['hash_validation'];
 
         $this->view->content = t('Hi %0%!', $aData['name']) . '<br />' .
-        t("Welcome to %site_name%'s Subscription!") . '<br />' .
-        t('Activation link: %0%.', '<a href="' . $sActivateLink . '">' . $sActivateLink . '</a>');
+            t("Welcome to %site_name%'s Subscription!") . '<br />' .
+            t('Activation link: %0%.', '<a href="' . $sActivateLink . '">' . $sActivateLink . '</a>');
+
         $this->view->footer = t('You are receiving this email because we received a registration application with "%0%" email address for %site_name% (%site_url%).', $aData['email']) . '<br />' .
-        t('If you think someone has used your email address without your knowledge to create an account on %site_name%, please contact us using our contact form available on our website.');
+            t('If you think someone has used your email address without your knowledge to create an account on %site_name%, please contact us using our contact form available on our website.');
 
         $sMessageHtml = $this->view->parseMail(
             PH7_PATH_SYS . 'global/' . PH7_VIEWS . PH7_TPL_MAIL_NAME . '/tpl/mail/sys/mod/newsletter/registration.tpl',

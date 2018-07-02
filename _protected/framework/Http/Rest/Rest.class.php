@@ -4,7 +4,7 @@
  * @desc             Rest (REpresentational State Transfer) Class.
  *
  * @author           Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright        (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / Framework / Http / Rest
  * @version          1.3
@@ -21,42 +21,40 @@ use PH7\Framework\Str\Str;
 
 class Rest extends Http
 {
-    /** @var string */
-    private $_sContentType;
+    const CONTENT_TYPE = 'application/json';
 
-    /** @var integer */
-    private $_iCode;
+    /** @var int */
+    private $iCode;
 
     /** @var string */
-    private $_sData;
+    private $sData;
 
     /** @var array */
-    private $_aRequest;
+    private $aRequest;
 
     /**
      * Calls Rest::_inputs() method and sets default values.
      */
     public function __construct()
     {
-        $this->_sContentType = 'application/json'; // Output format
-        $this->_inputs();
+        $this->inputs();
     }
 
     /**
      * @param string $sData The data from a request
-     * @param integer $iStatus Status Code. Default 200
+     * @param int $iStatus Status Code. Default 200
      *
      * @return void
      */
     public function response($sData, $iStatus = 200)
     {
-        $this->_sData = $sData;
+        $this->sData = $sData;
 
         /**
-         * @internal Http::getStatusCodes() returns FLASE when it doesn't find a GTTP status code.
+         * @internal Http::getStatusCodes() returns FALSE when it doesn't find any valid HTTP codes.
          */
-        $this->_iCode = (false !== static::getStatusCodes($iStatus)) ? $iStatus : 500; // If it finds nothing, then we put the 500 HTTP Status Code.
-        $this->_output();
+        $this->iCode = false !== static::getStatusCodes($iStatus) ? $iStatus : 500; // If it finds nothing, give 500 HTTP code.
+        $this->output();
     }
 
     /**
@@ -64,27 +62,35 @@ class Rest extends Http
      */
     public function getRequest()
     {
-        return $this->_aRequest;
+        return $this->aRequest;
+    }
+
+    /**
+     * @return string The request body content (usually, should be a JSON string).
+     */
+    public function getBody()
+    {
+        return Stream::getInput();
     }
 
     /**
      * @return void
      */
-    private function _inputs()
+    private function inputs()
     {
         switch ($this->getRequestMethod()) {
             case HttpRequest::METHOD_POST:
-                $this->_aRequest = $this->_cleanInputs($_POST);
+                $this->aRequest = $this->cleanInputs($_POST);
                 break;
 
             case HttpRequest::METHOD_GET:
             case HttpRequest::METHOD_DELETE:
-                $this->_aRequest = $this->_cleanInputs($_GET);
+                $this->aRequest = $this->cleanInputs($_GET);
                 break;
 
             case HttpRequest::METHOD_PUT:
-                parse_str(Stream::getInput(), $this->_aRequest);
-                $this->_aRequest = $this->_cleanInputs($this->_aRequest);
+                parse_str(Stream::getInput(), $this->aRequest);
+                $this->aRequest = $this->cleanInputs($this->aRequest);
                 break;
 
             default:
@@ -98,13 +104,13 @@ class Rest extends Http
      *
      * @return array|string
      */
-    private function _cleanInputs($mData)
+    private function cleanInputs($mData)
     {
         if (is_array($mData)) {
-            $aCleanInput = array();
+            $aCleanInput = [];
 
             foreach ($mData as $sKey => $sValue) {
-                $aCleanInput[$sKey] = $this->_cleanInputs($sValue);
+                $aCleanInput[$sKey] = $this->cleanInputs($sValue);
             }
 
             return $aCleanInput;
@@ -119,11 +125,11 @@ class Rest extends Http
      *
      * @return void
      */
-    private function _output()
+    private function output()
     {
-        static::setHeadersByCode($this->_iCode);
-        static::setContentType($this->_sContentType);
-        echo $this->_sData;
-        exit; // Stop the Script
+        static::setHeadersByCode($this->iCode);
+        static::setContentType(self::CONTENT_TYPE); //Output format
+        echo $this->sData;
+        exit;
     }
 }

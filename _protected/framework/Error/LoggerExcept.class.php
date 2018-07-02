@@ -4,7 +4,7 @@
  * @desc           Handler Logger Exception Management.
  *
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7/ Framework / Error
  * @version        1.3
@@ -15,6 +15,7 @@ namespace PH7\Framework\Error;
 defined('PH7') or exit('Restricted access');
 
 use Exception;
+use PH7\DbTableName;
 use PH7\Framework\File\File;
 use PH7\Framework\Http\Http;
 use PH7\Framework\Ip\Ip;
@@ -25,10 +26,12 @@ use PH7\Framework\Mvc\Router\FrontController;
 
 final class LoggerExcept extends Logger
 {
+    const MAX_UNCOMPRESSED_SIZE = 5; // Size in megabytes
+
     public function __construct()
     {
         try {
-            FrontController::getInstance()->_databaseInitialize();
+            FrontController::getInstance()->_initializeDatabase();
         } catch (ModelException $oE) {
             // If we are not in development mode, we display an error message to avoid showing information on the database.
             if (!Debug::is()) {
@@ -53,10 +56,10 @@ final class LoggerExcept extends Logger
         // UserAgent: The User Agent of the Browser Web.
         // UrlPag: The URL page where the exception is thrown.
         // Query: The request for such a page.
-        // Message: constains the error message.
+        // Message: contains the error message.
         // Level: contains the log level.
-        // File: constains the file name.
-        // Line: constains the line number.
+        // File: contains the file name.
+        // Line: contains the line number.
         $sAgent = (null !== ($mAgent = $this->browser->getUserAgent())) ? $mAgent : 'NO USER AGENT';
         $sQuery = (null !== ($mQuery = (new Http)->getQueryString())) ? $mQuery : 'NO QUERY STRING';
         $aLog = [
@@ -78,20 +81,21 @@ final class LoggerExcept extends Logger
                 $sFullFile = $this->sDir . static::EXCEPT_DIR . $this->sFileName . '.json';
                 $sFullGzipFile = $this->sDir . static::EXCEPT_DIR . static::GZIP_DIR . $this->sFileName . '.gz';
 
-                // If the log file is larger than 5 Mo then it compresses it into gzip
-                if (file_exists($sFullFile) && filesize($sFullFile) >= 5 * 1024 * 1024) {
-                    $rHandler = @gzopen($sFullGzipFile, 'a') or exit('Unable to write to log file gzip.');
+                if ($this->isGzipEligible($sFullFile)) {
+                    $sErrMsg = Debug::is() ? 'Unable to write: ' . $sFullGzipFile : 'Unable to write to log gzip file';
+                    $rHandler = @gzopen($sFullGzipFile, 'a') or exit($sErrMsg);
                     gzwrite($rHandler, $sContents);
                     gzclose($rHandler);
                 } else {
-                    $rHandler = @fopen($sFullFile, 'a') or exit('Unable to write to log file.');
+                    $sErrMsg = Debug::is() ? 'Unable to write: ' . $sFullFile : 'Unable to write to log file';
+                    $rHandler = @fopen($sFullFile, 'a') or exit($sErrMsg);
                     fwrite($rHandler, $sContents);
                     fclose($rHandler);
                 }
             } break;
 
             case 'database': {
-                $rStmt = Db::getInstance()->prepare('INSERT INTO' . Db::prefix('LogError') . 'SET logError = :line');
+                $rStmt = Db::getInstance()->prepare('INSERT INTO' . Db::prefix(DbTableName::LOG_ERROR) . 'SET logError = :line');
                 $rStmt->execute(array(':line' => $sContents));
                 Db::free($rStmt);
             } break;
@@ -108,5 +112,17 @@ final class LoggerExcept extends Logger
             default:
                 exit(t('Invalid Log Option.'));
         }
+    }
+
+    /**
+     * If the log file already exists and is larger than 5 Mb, then returns TRUE, FALSE otherwise.
+     *
+     * @param string $sFullFile Log file path.
+     *
+     * @return bool
+     */
+    private function isGzipEligible($sFullFile)
+    {
+        return is_file($sFullFile) && filesize($sFullFile) >= static::MAX_UNCOMPRESSED_SIZE * 1024 * 1024;
     }
 }

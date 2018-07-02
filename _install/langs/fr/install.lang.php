@@ -3,7 +3,7 @@
  * @title            French Language File
  *
  * @author           Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright        (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / Lang / FR
  */
@@ -30,6 +30,8 @@ $LANG = array(
     'next' => 'Suivant',
     'go' => 'Étape Suivante =>',
     'later' => 'Pas maintenant',
+    'license' => 'Licence',
+    'license_desc' => 'Veuillez lire la licence attentivement et l\'accepter avant de continuer l\'installation du logiciel.',
     'register' => 'Enregistrer !',
     'site_name' => 'Nom de votre site',
     'agree_license' => 'J\'ai lu et j\'accepte les Termes de licence ci-dessus.',
@@ -40,16 +42,16 @@ $LANG = array(
     'config_system' => 'Configuration du système du CMS !',
     'finish' => 'Installation terminée !',
     'go_your_site' => 'Aller sur votre site !',
-    'go_your_admin_panel' => 'Allez à votre panneau d\'administration !',
+    'go_your_admin_panel' => 'Allez à votre panneau d\'administration',
     'error_page_not_found' => 'Page introuvable',
     'error_page_not_found_desc' => 'Désolé, mais la page que vous cherchez est introuvable.',
     'no_protected_exist' => 'Désolé, mais nous n\'avons pas trouvé le répertoire &laquo; protected &raquo;',
     'no_protected_readable' => 'Veuillez changer les permissions du répertoire &laquo; protected &raquo; pour qu\'il soit en mode &laquo; lecture &raquo; (CHMOD 755).',
-    'no_public_writable' => 'Veuillez changer les permissions du répertoire &laquo; public &raquo; pour qu\'il soit en mode &laquo; écriture &raquo; (CHMOD 777).',
+    'no_public_writable' => 'Veuillez changer les permissions du répertoire &laquo; racine &raquo; pour qu\'il soit en mode &laquo; écriture &raquo; (CHMOD 777).',
     'no_app_config_writable' => 'Veuillez changer les permissions du répertoire &laquo; protected/app/configs &raquo; pour qu\'il soit en mode &laquo; écriture &raquo; (CHMOD 777).',
     'database_error' => 'Erreur de connexion avec votre base de données.<br />',
     'error_sql_import' => 'Une erreur s\'est produit pendant l\'importation de du fichier SQL vers votre base de données',
-    'require_mysql_version' => 'Vous devez installer MySQL ' . PH7_REQUIRE_SQL_VERSION . ' ou supérieur afin de pouvoir continuer.',
+    'require_mysql_version' => 'Vous devez installer MySQL ' . PH7_REQUIRED_SQL_VERSION . ' ou supérieur afin de pouvoir continuer.',
     'field_required' => 'Ce champ est obligatoire',
     'all_fields_mandatory' => 'Tous les champs marqués d\'un astérisque (*) sont obligatoires',
     'db_hostname' => 'Nom de l\'hôte du serveur de la base de données',
@@ -91,20 +93,23 @@ $LANG = array(
     'confirm_remove_install_folder_auto' => 'ATTENTION, tous les fichiers du dossiers /_install/ vont être supprimés.',
     'title_email_finish_install' => 'À propos de l\'installation : Informations',
     'content_email_finish_install' => '<p><strong>Félicitations, votre site Web est maintenant installé avec succès !</strong></p>
-        <p>Nous espérons que vous allez avoir beaucoup de plaisir avec <em>' . Controller::SOFTWARE_NAME . '</em> !</p>
+        <p>J\'espère que vous allez avoir beaucoup de plaisir avec <em>' . Controller::SOFTWARE_NAME . '</em> !</p>
         <p>L\'URL de VOTRE Site de Rencontre est : <em><a href="' . PH7_URL_ROOT . '">' . PH7_URL_ROOT . '</a></em></p>
         <p>L\'URL du panneau d\'administration est : <em><a href="' . PH7_URL_ROOT . PH7_ADMIN_MOD . '">' . PH7_URL_ROOT . PH7_ADMIN_MOD . '</a></em><br />
             Votre adresse e-mail pour le panneau d\'administration est : <em>' . (!empty($_SESSION['val']['admin_login_email']) ? $_SESSION['val']['admin_login_email'] : '') . '</em><br />
             Votre nom d\'utilisateur pour le panneau d\'administration est : <em>' . (!empty($_SESSION['val']['admin_username']) ? $_SESSION['val']['admin_username'] : '') . '</em><br />
             Votre mot de passe est : <em>****** (caché pour des raisons de sécurité. C\'est celui choisi durant l\'installation).</em>
         </p>
-        <p><strong>N\'oubliez pas de vous la péter en montrant votre nouveau service de rencontre à tous vos amis, vos collègues et vos potes de Facebook</strong> (et même à vos ennemis... ou pas).</p>
+        <p>N\'oubliez pas de vous la péter en montrant votre nouveau service de rencontre à tous vos amis, vos collègues et vos potes de Facebook (et même à vos ennemis... ou pas).</p>
+        <p><strong>Voici un <a href="' . get_tweet_post("Viens de créer mon #AppDeRencontre avec #pH7CMS ;) %s \n%s #LogicielRencontre", Controller::SOFTWARE_TWITTER, Controller::SOFTWARE_GIT_REPO) . '">un Tweet pré-écrit</a> (que vous pouvez éditer, bien sûr)</strong>.</p>
+        <p>&nbsp;</p>
+        <p><strong>Allez-vous m\'aider à améliorer le logiciel ? <a href="' . Controller::PATREON_URL . '">Faire une donation ici</a></strong></p>
         <p>&nbsp;</p>
         <p>Pour tous rapport de bogues, suggestions, partenariat, participation au développement du logiciel et/ou à sa traduction, etc.,
-        veuillez visiter notre <a href="' . Controller::SOFTWARE_WEBSITE . '">site Web</a>.</p>
+        veuillez visiter le <a href="' . Controller::SOFTWARE_GIT_REPO . '">dépôt Github</a>.</p>
         <p>---</p>
-        <p>Cordialement,</p>
-        <p>L\'équipe de développement de pH7CMS.</p>',
+        <p>Cordialement,<br />
+        <strong><a href="' . Controller::AUTHOR_URL . '">Pierre Soria</a></strong></p>',
     'yes_dir' => 'Le répertoire a été trouvé avec succès !',
     'no_dir' => 'Le répertoire n\'existe pas.',
     'wait_importing_database' => 'Veuillez patienter pendant l\'importation de la base de donnée.<br />
@@ -122,6 +127,9 @@ $LANG = array(
     'recommended' => 'Niche recommandée',
     'recommended_desc' => 'Choisissez cette niche si vous ne savez pas quelle niche choisir',
     'note_able_to_change_niche_settings_later' => 'Veuillez noter que vous pourrez changer le thème et activer/désactiver les modules par la suite dans votre panneau d\'administration.',
+    'will_you_make_donation' => 'Allez-vous m\'aider à améliorer le logiciel ?',
+    'donate_here' => 'Faire une donation maintenant',
+    'or_paypal_donation' => 'ou le faire par PayPal',
     'warning_no_js' => 'Cette page Web est incompatible sans l\'activation de JavaScript.<br />
         Veuillez activer JavaScript via les options de votre navigateur Web.',
     'admin_url' => 'URL du panneau d\'administration',

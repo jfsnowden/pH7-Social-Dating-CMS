@@ -4,7 +4,7 @@
  * @desc             Useful methods for handling files.
  *
  * @author           Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright        (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / Framework / File
  */
@@ -14,6 +14,7 @@ namespace PH7\Framework\File;
 defined('PH7') or exit('Restricted access');
 
 use PH7\Framework\Error\CException\PH7InvalidArgumentException;
+use PH7\Framework\File\Permission\PermissionException;
 use PH7\Framework\Navigation\Browser;
 use PH7\Framework\Parse\Url as UrlParser;
 use PH7\Framework\Registry\Registry;
@@ -26,7 +27,21 @@ use ZipArchive;
 
 class File
 {
-    const REGEX_BINARY_FILE = '/^(.*?)\.(gif|jpg|jpeg|png|ico|mp3|mp4|mov|avi|flv|mpg|mpeg|wmv|ogg|ogv|webm|pdf|ttf|eot|woff|svg|swf)$/i';
+    const REGEX_BINARY_FILE = '/^(.*?)\.(gif|jpg|jpeg|png|webp|ico|mp3|mp4|mov|avi|flv|mpg|mpeg|wmv|ogg|ogv|webm|pdf|ttf|eot|woff|svg|swf)$/i';
+
+    const RENAME_FUNC_NAME = 'rename';
+    const COPY_FUNC_NAME = 'copy';
+
+    const DIR_HANDLE_FUNC_NAMES = [
+        self::RENAME_FUNC_NAME,
+        self::COPY_FUNC_NAME
+    ];
+
+    const READ_CHMOD_OCTAL_DIGIT = 0444;
+    const READ_WRITE_CHMOD_OCTAL_DIGIT = 0644;
+    const READ_WRITE_EXEC_CHMOD_OCTAL_DIGIT = 0777;
+
+    const WILDCARD_SYMBOL = '*';
 
     // End Of Line relative to the operating system
     const EOL = PHP_EOL;
@@ -50,6 +65,7 @@ class File
         'png' => 'image/png',
         'jpeg' => 'image/jpg',
         'jpg' => 'image/jpg',
+        'webp' => 'image/webp',
         'ico' => 'image/x-icon',
         'eot' => 'application/vnd.ms-fontobject',
         'otf' => 'application/octet-stream',
@@ -59,6 +75,7 @@ class File
         'swf' => 'application/x-shockwave-flash',
         'mp3' => 'audio/mpeg',
         'mp4' => 'video/mp4',
+        'webm' => 'video/webm',
         'mov' => 'video/quicktime',
         'avi' => 'video/x-msvideo',
         'php' => 'text/plain',
@@ -103,6 +120,7 @@ class File
     public function getFileWithoutExt($sFile)
     {
         $sExt = $this->getFileExt($sFile);
+
         return str_replace(PH7_DOT . $sExt, '', $sFile);
     }
 
@@ -110,9 +128,9 @@ class File
      * Get File Contents.
      *
      * @param string $sFile File name.
-     * @param boolean $bIncPath Default FALSE
+     * @param bool $bIncPath Default FALSE
      *
-     * @return string|boolean Returns the read data or FALSE on failure.
+     * @return string|bool Returns the read data or FALSE on failure.
      */
     public function getFile($sFile, $bIncPath = false)
     {
@@ -124,9 +142,9 @@ class File
      *
      * @param string $sFile File name.
      * @param string $sContents Contents file.
-     * @param integer $iFlag Constant (see http://php.net/manual/function.file-put-contents.php).
+     * @param int $iFlag Constant (see http://php.net/manual/function.file-put-contents.php).
      *
-     * @return integer|boolean Returns the number of bytes that were written to the file, or FALSE on failure.
+     * @return int|bool Returns the number of bytes that were written to the file, or FALSE on failure.
      */
     public function putFile($sFile, $sContents, $iFlag = 0)
     {
@@ -138,7 +156,7 @@ class File
      *
      * @param array|string $mFile
      *
-     * @return boolean TRUE if file exists, FALSE otherwise.
+     * @return bool TRUE if file exists, FALSE otherwise.
      */
     public function existFile($mFile)
     {
@@ -162,7 +180,7 @@ class File
      *
      * @param array|string $mDir
      *
-     * @return boolean TRUE if file exists, FALSE otherwise.
+     * @return bool TRUE if file exists, FALSE otherwise.
      */
     public function existDir($mDir)
     {
@@ -188,17 +206,19 @@ class File
      */
     public function getDirList($sDir)
     {
-        $aDirList = array();
+        $aDirList = [];
 
         if ($rHandle = opendir($sDir)) {
             while (false !== ($sFile = readdir($rHandle))) {
-                if ($sFile != '.' && $sFile != '..' && is_dir($sDir . PH7_DS . $sFile))
+                if ($sFile != '.' && $sFile != '..' && is_dir($sDir . PH7_DS . $sFile)) {
                     $aDirList[] = $sFile;
+                }
             }
             asort($aDirList);
             reset($aDirList);
         }
         closedir($rHandle);
+
         return $aDirList;
     }
 
@@ -207,11 +227,11 @@ class File
      *
      * @param string $sFile
      *
-     * @return integer The size of the file in bytes.
+     * @return int The size of the file in bytes.
      */
     public function size($sFile)
     {
-        return (int) @filesize($sFile);
+        return (int)@filesize($sFile);
     }
 
     /**
@@ -222,24 +242,25 @@ class File
      */
     public function getFileList($sDir, $mExt = null)
     {
-        $aTree = array();
+        $aTree = [];
         $sDir = $this->checkExtDir($sDir);
 
         if (is_dir($sDir) && $rHandle = opendir($sDir)) {
-            while (false !== ($sF = readdir($rHandle))) {
-                if ($sF !== '.' && $sF !== '..') {
-                    if (is_dir($sDir . $sF)) {
-                        $aTree = array_merge($aTree, $this->getFileList($sDir . $sF, $mExt));
+            while (false !== ($sFile = readdir($rHandle))) {
+                if ($sFile !== '.' && $sFile !== '..') {
+                    if (is_dir($sDir . $sFile)) {
+                        $aTree = array_merge($aTree, $this->getFileList($sDir . $sFile, $mExt));
                     } else {
                         if (!empty($mExt)) {
                             $aExt = (array)$mExt;
 
                             foreach ($aExt as $sExt) {
-                                if (substr($sF, -strlen($sExt)) === $sExt)
-                                    $aTree[] = $sDir . $sF;
+                                if (substr($sFile, -strlen($sExt)) === $sExt) {
+                                    $aTree[] = $sDir . $sFile;
+                                }
                             }
                         } else {
-                            $aTree[] = $sDir . $sF;
+                            $aTree[] = $sDir . $sFile;
                         }
                     }
                 }
@@ -247,6 +268,7 @@ class File
             sort($aTree);
         }
         closedir($rHandle);
+
         return $aTree;
     }
 
@@ -279,13 +301,13 @@ class File
      * allows the creation of nested directories specified in the pathname.
      *
      * @param string|array $mDir
-     * @param integer (octal) $iMode Default: 0777
+     * @param int (octal) $iMode Default: 0777
      *
      * @return void
      *
-     * @throws Exception If the file cannot be created.
+     * @throws PermissionException If the file cannot be created.
      */
-    public function createDir($mDir, $iMode = 0777)
+    public function createDir($mDir, $iMode = self::READ_WRITE_EXEC_CHMOD_OCTAL_DIGIT)
     {
         if (is_array($mDir)) {
             foreach ($mDir as $sDir) {
@@ -294,7 +316,9 @@ class File
         } else {
             if (!is_dir($mDir)) {
                 if (!@mkdir($mDir, $iMode, true)) {
-                    throw new Exception('Error to create file: \'' . $mDir . '\'<br /> Please verify that the directory permission is in writing mode.');
+                    throw new PermissionException(
+                        sprintf('Cannot create "%s" directory.<br /> Please verify that the directory permission is in writing mode.', $mDir)
+                    );
                 }
             }
         }
@@ -306,7 +330,7 @@ class File
      * @param string $sFrom File.
      * @param string $sTo File.
      *
-     * @return boolean
+     * @return bool
      */
     public function copy($sFrom, $sTo)
     {
@@ -323,13 +347,13 @@ class File
      * @param string $sFrom Old directory.
      * @param string $sTo New directory.
      *
-     * @return boolean TRUE if everything went well, otherwise FALSE if the "from directory" couldn't be found or if it couldn't be copied.
+     * @return bool TRUE if everything went well, otherwise FALSE if the "from directory" couldn't be found or if it couldn't be copied.
      *
      * @throws PH7InvalidArgumentException
      */
     public function copyDir($sFrom, $sTo)
     {
-        return $this->recursiveDirIterator($sFrom, $sTo, 'copy');
+        return $this->recursiveDirIterator($sFrom, $sTo, self::COPY_FUNC_NAME);
     }
 
     /**
@@ -338,11 +362,11 @@ class File
      * @param string $sFrom File or directory.
      * @param string $sTo File or directory.
      *
-     * @return integer|boolean Returns the last line on success, and FALSE on failure.
+     * @return int|bool Returns the last line on success, and FALSE on failure.
      */
     public function systemCopy($sFrom, $sTo)
     {
-        if (file_exists($sFrom)) {
+        if (file_exists($this->removeWildcards($sFrom))) {
             return system("cp -r $sFrom $sTo");
         }
 
@@ -356,7 +380,7 @@ class File
      * @param string $sFrom File or directory.
      * @param string $sTo File or directory.
      *
-     * @return boolean
+     * @return bool
      */
     public function rename($sFrom, $sTo)
     {
@@ -373,13 +397,13 @@ class File
      * @param string $sFrom Old directory.
      * @param string $sTo New directory.
      *
-     * @return boolean TRUE if everything went well, otherwise FALSE if the "from directory" couldn't be found or if it couldn't be renamed.
+     * @return bool TRUE if everything went well, otherwise FALSE if the "from directory" couldn't be found or if it couldn't be renamed.
      *
      * @throws PH7InvalidArgumentException
      */
     public function renameDir($sFrom, $sTo)
     {
-        return $this->recursiveDirIterator($sFrom, $sTo, 'rename');
+        return $this->recursiveDirIterator($sFrom, $sTo, self::RENAME_FUNC_NAME);
     }
 
     /**
@@ -388,11 +412,11 @@ class File
      * @param string $sFrom File or directory.
      * @param string $sTo File or directory.
      *
-     * @return integer|boolean Returns the last line on success, and FALSE on failure.
+     * @return int|bool Returns the last line on success, and FALSE on failure.
      */
     public function systemRename($sFrom, $sTo)
     {
-        if (file_exists($sFrom)) {
+        if (file_exists($this->removeWildcards($sFrom))) {
             return system("mv $sFrom $sTo");
         }
 
@@ -426,11 +450,11 @@ class File
      *
      * @param string $sPath The path
      *
-     * @return boolean
+     * @return bool
      */
     public function deleteDir($sPath)
     {
-        return (is_file($sPath) ? unlink($sPath) : (is_dir($sPath) ? array_map(array($this, 'deleteDir'), glob($sPath . '/*')) === @rmdir($sPath) : false));
+        return (is_file($sPath) ? unlink($sPath) : (is_dir($sPath) ? array_map([$this, 'deleteDir'], glob($sPath . '/*')) === @rmdir($sPath) : false));
     }
 
     /**
@@ -452,11 +476,23 @@ class File
     }
 
     /**
+     * Clean paths if wildcard is found in order to get valid paths.
+     *
+     * @param string $sPath
+     *
+     * @return string
+     */
+    public function removeWildcards($sPath)
+    {
+        return str_replace(self::WILDCARD_SYMBOL, '', $sPath);
+    }
+
+    /**
      * Get the creation/modification time of a file in the Unix timestamp.
      *
      * @param string $sFile Full path of the file.
      *
-     * @return integer|boolean Returns the time the file was last modified, or FALSE if it not found.
+     * @return int|bool Returns the time the file was last modified, or FALSE if it not found.
      */
     public function getModifTime($sFile)
     {
@@ -469,7 +505,7 @@ class File
      *
      * @param string $sFile Full path of the file.
      *
-     * @return integer Returns the latest modification time of the file in Unix timestamp.
+     * @return int Returns the latest modification time of the file in Unix timestamp.
      */
     public static function version($sFile)
     {
@@ -479,13 +515,12 @@ class File
     /**
      * Delay script execution.
      *
-     * @param integer $iSleep Halt time in seconds. Optional parameter, default value is 5.
+     * @param int $iSleep Halt time in seconds.
      *
-     * @return integer|boolean Returns "0" on success, or "false" on error.
+     * @return int|bool Returns 0 on success, or FALSE on error.
      */
-    public function sleep($iSleep = null)
+    public function sleep($iSleep = 5)
     {
-        $iSleep = (!empty($iSleep)) ? $iSleep : 5;
         return sleep($iSleep);
     }
 
@@ -493,9 +528,9 @@ class File
      * Changes permission on a file or directory.
      *
      * @param string $sFile
-     * @param integer $iMode Octal Permission for the file.
+     * @param int $iMode Octal Permission for the file.
      *
-     * @return boolean
+     * @return bool
      */
     public function chmod($sFile, $iMode)
     {
@@ -533,7 +568,7 @@ class File
      *
      * @param string $sPath
      *
-     * @return integer The size of the file in bytes.
+     * @return int The size of the file in bytes.
      */
     public function getDirSize($sPath)
     {
@@ -577,7 +612,7 @@ class File
     /**
      * @param string $sData
      *
-     * @return boolean|integer|float|string|array|object
+     * @return bool|int|float|string|array|object
      */
     public function unpack($sData)
     {
@@ -663,7 +698,7 @@ class File
      * @param string $sFile
      * @param string $sData
      *
-     * @return integer Returns the number of bytes written, or NULL on error.
+     * @return int Returns the number of bytes written, or NULL on error.
      */
     public function save($sFile, $sData)
     {
@@ -712,27 +747,26 @@ class File
      *
      * @param string $sPath
      *
-     * @return array|boolean Returns an ARRAY with the folders or FALSE if the folder could not be opened.
+     * @return array|bool Returns an ARRAY with the folders or FALSE if the folder could not be opened.
      */
     public function readDirs($sPath = './')
     {
         if (!($rHandle = opendir($sPath))) {
-            return false; // Return when yield is used will be OK with PHP 7
+            return false; // TODO: Return when yield is used will be OK with PHP 7
         }
 
-        $aRet = array();//remove it for yield
-
+        $aRet = []; // TODO: Remove it once yield is used
         while (false !== ($sFolder = readdir($rHandle))) {
             if ('.' == $sFolder || '..' == $sFolder || !is_dir($sPath . $sFolder)) {
                 continue;
             }
 
-            //yield $sFolder; // PHP 7
-            $aRet[] = $sFolder;//remove it for yield
+            //yield $sFolder; // TODO: For PHP 7
+            $aRet[] = $sFolder; // TODO: Remove it for yield
         }
         closedir($rHandle);
 
-        return $aRet;//remove it for yield
+        return $aRet; // TODO: Remove it for yield
     }
 
     /**
@@ -740,7 +774,7 @@ class File
      *
      * @param string $sUrl URL to be read contents.
      *
-     * @return string|boolean Return the result content on success, FALSE on failure.
+     * @return string|bool Return the result content on success, FALSE on failure.
      */
     public function getUrlContents($sUrl)
     {
@@ -762,7 +796,7 @@ class File
      * @param string $sFile Zip file.
      * @param string $sDir Destination to extract the file.
      *
-     * @return boolean
+     * @return bool
      */
     public function zipExtract($sFile, $sDir)
     {
@@ -783,7 +817,7 @@ class File
      *
      * @param string $sFile
      *
-     * @return boolean
+     * @return bool
      */
     public function isBinary($sFile)
     {
@@ -805,7 +839,7 @@ class File
                 return is_binary($sContents);
 
             return (
-                0 or substr_count($sContents, "^ -~", "^\r\n")/512 > 0.3
+                0 or substr_count($sContents, "^ -~", "^\r\n") / 512 > 0.3
                 or substr_count($sContents, "\x00") > 0
             );
         }
@@ -828,18 +862,20 @@ class File
     /**
      * Recursive Directory Iterator.
      *
-     * @param string $sFuncName The function name. Choose between 'copy' and 'rename'.
      * @param string $sFrom Directory.
      * @param string $sTo Directory.
+     * @param string $sFuncName The function name. Choose between 'copy' and 'rename'.
      *
-     * @return boolean
+     * @return bool
      *
-     * @throws PH7InvalidArgumentException If the type is bad.
+     * @throws PH7InvalidArgumentException If the function name is invalid.
+     * @throws PermissionException If the directory cannot be created
+     *
      */
     private function recursiveDirIterator($sFrom, $sTo, $sFuncName)
     {
-        if ($sFuncName !== 'copy' && $sFuncName !== 'rename') {
-            throw new PH7InvalidArgumentException('Bad function name: \'' . $sFuncName . '\'');
+        if (!in_array($sFuncName, self::DIR_HANDLE_FUNC_NAMES, true)) {
+            throw new PH7InvalidArgumentException('Wrong function name: ' . $sFuncName);
         }
 
         if (!is_dir($sFrom)) {
@@ -850,6 +886,7 @@ class File
         $oIterator = new RecursiveIteratorIterator($this->getDirIterator($sFrom), RecursiveIteratorIterator::SELF_FIRST);
 
         foreach ($oIterator as $sFromFile) {
+            // http://php.net/manual/en/recursivedirectoryiterator.getsubpathname.php#example-4559
             $sDest = $sTo . PH7_DS . $oIterator->getSubPathName();
 
             if ($sFromFile->isDir()) {

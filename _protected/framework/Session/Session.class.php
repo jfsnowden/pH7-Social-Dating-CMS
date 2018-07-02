@@ -4,7 +4,7 @@
  * @desc             Handler Session
  *
  * @author           Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright        (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / Framework / Session
  */
@@ -19,33 +19,24 @@ use PH7\Framework\Server\Server;
 class Session
 {
     /**
-     * @param boolean $bDisableSessCache Disable PHP's session cache. Default FALSE
+     * @param bool|null $bDisableSessCache Disable PHP's session cache.
      */
     public function __construct($bDisableSessCache = false)
     {
-        if ($bDisableSessCache) {
-            session_cache_limiter(false);
+        if (!$this->isSessionActivated()) {
+            if ($bDisableSessCache) {
+                session_cache_limiter(false);
+            }
+
+            $this->initializePHPSession();
         }
-
-        session_name(Config::getInstance()->values['session']['cookie_name']);
-
-        /**
-         * In localhost mode, security session_set_cookie_params causing problems in the sessions, so we disable this if we are in localhost mode.
-         * Otherwise if we are in production mode, we activate this.
-         */
-        if (!Server::isLocalHost()) {
-            $iTime = (int) Config::getInstance()->values['session']['expiration'];
-            session_set_cookie_params($iTime, Config::getInstance()->values['session']['path'], Config::getInstance()->values['session']['domain'], (substr(PH7_URL_PROT, 0, 5) === 'https'), true);
-        }
-
-        $this->initializePHPSession();
     }
 
     /**
      * Set a PHP session.
      *
      * @param array|string $mName Name of the session.
-     * @param string $sValue Value of the session, Optional if the session data is in a array.
+     * @param string|null $sValue Value of the session, Optional if the session data is in a array.
      *
      * @return void
      */
@@ -64,7 +55,7 @@ class Session
      * Get a session value by giving its name.
      *
      * @param string $sName Name of the session.
-     * @param boolean $bEscape Default TRUE
+     * @param bool|null $bEscape
      *
      * @return string If the session exists, returns the session with function escape() (htmlspecialchars) if escape is enabled. Empty string value if the session doesn't exist.
      */
@@ -79,7 +70,7 @@ class Session
      *
      * @param array|string $mName Name of the session.
      *
-     * @return boolean
+     * @return bool
      */
     public function exists($mName)
     {
@@ -127,7 +118,7 @@ class Session
      */
     public function regenerateId()
     {
-        if (session_status() === PHP_SESSION_ACTIVE) {
+        if ($this->isSessionActivated()) {
             session_regenerate_id(true);
         }
     }
@@ -138,7 +129,7 @@ class Session
     public function destroy()
     {
         if (!empty($_SESSION)) {
-            $_SESSION = array();
+            $_SESSION = [];
             session_unset();
             session_destroy();
         }
@@ -149,13 +140,37 @@ class Session
      *
      * @return void
      */
-    protected function initializePHPSession()
+    private function initializePHPSession()
     {
-        if (session_status() !== PHP_SESSION_ACTIVE)
-            @session_start();
+        session_name(Config::getInstance()->values['session']['cookie_name']);
+
+        /**
+         * In localhost mode, security session_set_cookie_params causing problems in the sessions, so we disable this if we are in localhost mode.
+         * Otherwise if we are in production mode, we activate this.
+         */
+        if (!Server::isLocalHost()) {
+            $iTime = (int)Config::getInstance()->values['session']['expiration'];
+            session_set_cookie_params(
+                $iTime,
+                Config::getInstance()->values['session']['path'],
+                Config::getInstance()->values['session']['domain'],
+                (substr(PH7_URL_PROT, 0, 5) === 'https'),
+                true
+            );
+        }
+
+        @session_start();
     }
 
-    protected function close()
+    /**
+     * @return bool
+     */
+    private function isSessionActivated()
+    {
+        return session_status() === PHP_SESSION_ACTIVE;
+    }
+
+    private function close()
     {
         session_write_close();
     }

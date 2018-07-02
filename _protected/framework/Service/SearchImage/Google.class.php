@@ -1,7 +1,7 @@
 <?php
 /**
  * @author           Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright        (c) 2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2017-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / Framework / Service / SearchImage
  */
@@ -10,21 +10,22 @@ namespace PH7\Framework\Service\SearchImage;
 
 defined('PH7') or exit('Restricted access');
 
+use PH7\Framework\Service\SearchImage\Url as ImageUrl;
 use PH7\Framework\Url\Url as UrlHelper;
 
 class Google implements Imageable
 {
     const SEARCH_IMAGE_LINK = 'https://www.google.com/searchbyimage?image_url=';
 
-    /** @var string */
+    /** @var ImageUrl */
     private $oImageUrl;
 
     /**
-     * @param Url $oImageUrl
+     * @param ImageUrl $oImageUrl
      *
      * @throws InvalidUrlException
      */
-    public function __construct(Url $oImageUrl)
+    public function __construct(ImageUrl $oImageUrl)
     {
         $this->oImageUrl = $oImageUrl;
     }

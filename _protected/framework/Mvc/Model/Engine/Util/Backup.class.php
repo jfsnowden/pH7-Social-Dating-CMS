@@ -4,11 +4,12 @@
  * @desc             Backs up the database.
  *
  * @author           Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright        (c) 2011-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2011-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / Framework / Mvc / Model / Engine / Util
  * @version          1.3
- * @history          04/13/2014 - We replaced the bzip2 compression program by gzip because bzip2 is much too slow to compress and uncompress files and the  compression is only a little higher. In addition, gzip is much more common on shared hosting that bzip2.
+ * @history          04/13/2014 - Replaced the bzip2 compression program by gzip because bzip2 is much too slow to compress and uncompress files and the compression is only a little higher.
+ *                   In addition, gzip is much more common on shared hosting that bzip2.
  */
 
 namespace PH7\Framework\Mvc\Model\Engine\Util;
@@ -18,26 +19,28 @@ defined('PH7') or exit('Restricted access');
 use PH7\Framework\Config\Config;
 use PH7\Framework\Core\Kernel;
 use PH7\Framework\Date\CDateTime;
+use PH7\Framework\File\GenerableFile;
 use PH7\Framework\Mvc\Model\Engine\Db;
 use PH7\Framework\Navigation\Browser;
 
-class Backup
+class Backup implements GenerableFile
 {
     const SQL_FILE_EXT = 'sql';
     const ARCHIVE_FILE_EXT = 'gz';
+    const GZIP_COMPRESS_LEVEL = 9;
 
     /** @var string */
-    private $_sPathName;
+    private $sPathName;
 
     /** @var string */
-    private $_sSql;
+    private $sSql;
 
     /**
      * @param string $sPathName Can be null for showing the data only ( by using Backup->back()->show() ). Default NULL
      */
     public function __construct($sPathName = null)
     {
-        $this->_sPathName = $sPathName;
+        $this->sPathName = $sPathName;
     }
 
     /**
@@ -47,14 +50,9 @@ class Backup
      */
     public function back()
     {
-        $this->_sSql =
-        "#################### Database Backup ####################\n" .
-        '# ' . Kernel::SOFTWARE_NAME . ' ' . Kernel::SOFTWARE_VERSION . ', Build ' . Kernel::SOFTWARE_BUILD . "\r\n" .
-        '# Database name: ' . Config::getInstance()->values['database']['name'] . "\r\n" .
-        '# Created on ' . (new CDateTime)->get()->dateTime() . "\r\n" .
-        "#########################################################\r\n\r\n";
+        $this->sSql = $this->getHeaderContents();
 
-        $aTables = $aColumns = $aValues = array();
+        $aTables = $aColumns = $aValues = [];
         $oAllTables = Db::showTables();
         while ($aRow = $oAllTables->fetch()) $aTables[] = $aRow[0];
         unset($oAllTables);
@@ -63,15 +61,15 @@ class Backup
 
         // Loop through tables
         foreach ($aTables as $sTable) {
-            $oResult = $oDb->query('SHOW CREATE TABLE ' . $sTable);
+            $rResult = $oDb->query('SHOW CREATE TABLE ' . $sTable);
 
-            $iNum = (int)$oResult->rowCount();
+            $iNum = (int)$rResult->rowCount();
 
             if ($iNum > 0) {
-                $aRow = $oResult->fetch();
+                $aRow = $rResult->fetch();
 
-                $this->_sSql .= "#\n# Table: $sTable\r\n#\r\n\r\n";
-                $this->_sSql .= "DROP TABLE IF EXISTS $sTable;\r\n\r\n";
+                $this->sSql .= "#\n# Table: $sTable\r\n#\r\n\r\n";
+                $this->sSql .= "DROP TABLE IF EXISTS $sTable;\r\n\r\n";
 
                 $sValue = $aRow[1];
 
@@ -79,39 +77,40 @@ class Backup
                 $sValue = str_replace('`', '', $sValue);
 
                 /*** Table structure ***/
-                $this->_sSql .= $sValue . ";\r\n\r\n";
+                $this->sSql .= $sValue . ";\r\n\r\n";
 
                 unset($aRow);
             }
-            unset($oResult);
+            unset($rResult);
 
-            $oResult = $oDb->query('SELECT * FROM ' . $sTable);
+            $rResult = $oDb->query('SELECT * FROM ' . $sTable);
 
-            $iNum = (int)$oResult->rowCount();
+            $iNum = (int)$rResult->rowCount();
 
             if ($iNum > 0) {
-                while ($aRow = $oResult->fetch()) {
+                while ($aRow = $rResult->fetch()) {
                     foreach ($aRow as $sColumn => $sValue) {
                         if (!is_numeric($sColumn)) {
-                            if (!is_numeric($sValue) && !empty($sValue))
+                            if (!empty($sValue) && !is_numeric($sValue)) {
                                 $sValue = Db::getInstance()->quote($sValue);
+                            }
 
-                            $sValue = str_replace(array("\r", "\n"), array('', '\n'), $sValue);
+                            $sValue = str_replace(["\r", "\n"], ['', '\n'], $sValue);
 
                             $aColumns[] = $sColumn;
                             $aValues[] = $sValue;
                         }
                     }
 
-                    $this->_sSql .= 'INSERT INTO ' . $sTable . ' (' . implode(', ', $aColumns) . ') VALUES(\'' . implode('\', \'', $aValues) . "');\n";
+                    $this->sSql .= 'INSERT INTO ' . $sTable . ' (' . implode(', ', $aColumns) . ') VALUES(\'' . implode('\', \'', $aValues) . "');\n";
 
                     unset($aColumns, $aValues);
                 }
-                $this->_sSql .= "\r\n\r\n";
+                $this->sSql .= "\r\n\r\n";
 
                 unset($aRow);
             }
-            unset($oResult);
+            unset($rResult);
         }
         unset($oDb);
 
@@ -125,7 +124,7 @@ class Backup
      */
     public function show()
     {
-        return $this->_sSql;
+        return $this->sSql;
     }
 
     /**
@@ -135,8 +134,8 @@ class Backup
      */
     public function save()
     {
-        $rHandle = fopen($this->_sPathName, 'wb');
-        fwrite($rHandle, $this->_sSql);
+        $rHandle = fopen($this->sPathName, 'wb');
+        fwrite($rHandle, $this->sSql);
         fclose($rHandle);
     }
 
@@ -147,43 +146,44 @@ class Backup
      */
     public function saveArchive()
     {
-        $rArchive = gzopen($this->_sPathName, 'w');
-        gzwrite($rArchive, $this->_sSql);
+        $rArchive = gzopen($this->sPathName, 'w');
+        gzwrite($rArchive, $this->sSql);
         gzclose($rArchive);
     }
 
     /**
      * Restore SQL backup file.
      *
-     * @return boolean|string Returns TRUE if there are no errors, otherwise returns "the error message".
+     * @return bool|string Returns TRUE if there are no errors, otherwise returns "the error message".
      */
     public function restore()
     {
-        $mRet = Various::execQueryFile($this->_sPathName);
+        $mRet = Various::execQueryFile($this->sPathName);
         return $mRet !== true ? print_r($mRet, true) : true;
     }
 
     /**
      * Restore the gzip compressed archive backup.
      *
-     * @return boolean|string Returns TRUE if there are no errors, otherwise returns "the error message".
+     * @return bool|string Returns TRUE if there are no errors, otherwise returns "the error message".
      */
     public function restoreArchive()
     {
-        $rArchive = gzopen($this->_sPathName, 'r');
+        $rArchive = gzopen($this->sPathName, 'r');
 
         $sSqlContent = '';
         while (!feof($rArchive)) {
-            $sSqlContent .= gzread($rArchive, filesize($this->_sPathName));
+            $sSqlContent .= gzread($rArchive, filesize($this->sPathName));
         }
 
         gzclose($rArchive);
 
         $sSqlContent = str_replace(PH7_TABLE_PREFIX, Db::prefix(), $sSqlContent);
-        $oDb = Db::getInstance()->exec($sSqlContent);
+        $oDb = Db::getInstance();
+        $rStmt = $oDb->exec($sSqlContent);
         unset($sSqlContent);
 
-        return $oDb === false ? print_r($oDb->errorInfo(), true) : true;
+        return $rStmt === false ? print_r($oDb->errorInfo(), true) : true;
     }
 
     /**
@@ -193,7 +193,7 @@ class Backup
      */
     public function download()
     {
-        $this->_download();
+        $this->downloadBackup();
     }
 
     /**
@@ -203,26 +203,42 @@ class Backup
      */
     public function downloadArchive()
     {
-        $this->_download(true);
+        $this->downloadBackup(true);
     }
 
     /**
-     * Generic method that allows you to download a file or a SQL file gzip compressed archive.
+     * Returns the SQL header containing useful information relative to the backup.
      *
-     * @param boolean $bArchive If TRUE, the string will be compressed in gzip.
+     * @return string
+     */
+    public function getHeaderContents()
+    {
+        $sSql = "#################### Database Backup ####################\n" .
+            '# ' . Kernel::SOFTWARE_NAME . ' ' . Kernel::SOFTWARE_VERSION . ', Build ' . Kernel::SOFTWARE_BUILD . "\r\n" .
+            '# Database name: ' . Config::getInstance()->values['database']['name'] . "\r\n" .
+            '# Created on ' . (new CDateTime)->get()->dateTime() . "\r\n" .
+            "#########################################################\r\n\r\n";
+
+        return $sSql;
+    }
+
+    /**
+     * Generic method that allows you to download a file or a SQL gzip file compressed archive.
+     *
+     * @param bool $bArchive If TRUE, the string will be compressed in gzip.
      *
      * @return void
      */
-    private function _download($bArchive = false)
+    private function downloadBackup($bArchive = false)
     {
         ob_start();
         /***** Set Headers *****/
         (new Browser)->noCache(); // No cache
         header('Content-Type: application/octet-stream');
-        header('Content-Disposition: attachment; filename=' . $this->_sPathName);
+        header('Content-Disposition: attachment; filename=' . $this->sPathName);
 
         /***** Show the SQL contents *****/
-        echo($bArchive ? gzencode($this->_sSql, 9, FORCE_GZIP) : $this->_sSql);
+        echo $bArchive ? gzencode($this->sSql, self::GZIP_COMPRESS_LEVEL, FORCE_GZIP) : $this->sSql;
 
         /***** Catch output *****/
         $sBuffer = ob_get_contents();

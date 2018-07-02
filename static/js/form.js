@@ -1,6 +1,6 @@
 /*
  * Author:        Pierre-Henry Soria <ph7software@gmail.com>
- * Copyright:     (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * Copyright:     (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * License:       GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  */
 
@@ -33,7 +33,7 @@ $('input[name=all_action]').on('click', function () {
  */
 function checkChecked(bIsConfirmAlert) {
     if (typeof bIsConfirmAlert == "undefined")
-        var bIsConfirmAlert = true; // Default value
+        bIsConfirmAlert = true; // Default value
 
     var iCountChecked = 0;
     $('input[name="action[]"]').each(function () {
@@ -43,8 +43,10 @@ function checkChecked(bIsConfirmAlert) {
     if (iCountChecked == 0) {
         alert(pH7LangCore.select_least_one);
         return false;
-    } else if (bIsConfirmAlert)
+    }
+    if (bIsConfirmAlert) {
         return confirm(pH7LangCore.warning_irreversible_action);
+    }
 
     return true;
 }

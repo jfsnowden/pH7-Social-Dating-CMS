@@ -5,7 +5,7 @@
  *                   To use annotations, you must inherit your class with this Annotation class.
  *
  * @author           Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright        (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / Framework / Annotation
  * @version          1.1
@@ -23,9 +23,7 @@ abstract class Annotation
 {
     const CACHE_GROUP = 'str/annotation';
 
-    /**
-     * @var object $oCache
-     */
+    /** @var Cache */
     private $oCache;
 
     /**
@@ -53,12 +51,12 @@ abstract class Annotation
 
         $this->initializeAnnotations($sClassName);
 
-        if (!$aChema = $this->oCache->get()) {
+        if (!$aSchema = $this->oCache->get()) {
             $aClassVars = get_class_vars($sClassName);
 
             $oReflection = new ReflectionClass($this);
 
-            $aChema = array();
+            $aSchema = [];
 
             foreach ($aClassVars as $sName => $sValue) {
                 $oProperty = $oReflection->getProperty($sName);
@@ -67,25 +65,25 @@ abstract class Annotation
                 $sComment = preg_replace('/\/\*\*(.*)\*\//', '$1', $sComment);
                 $aComment = preg_split('/\n/', $sComment);
 
-                $sKey = $sVal = null;
-                $aChema[$sName] = array();
+                $sKey = $sVal = null; // Set default values
+                $aSchema[$sName] = array();
 
                 foreach ($aComment as $sCommentLine) {
                     if (preg_match('/@(.*?): (.*)/i', $sCommentLine, $aMatches)) {
                         $sKey = $aMatches[1];
-                        $sKey = $aMatches[2];
+                        $sVal = $aMatches[2];
 
-                        $aChema[$sName][trim($sKey)] = trim($sVal);
+                        $aSchema[$sName][trim($sKey)] = trim($sVal);
                     }
                 }
             }
 
             unset($oReflection);
 
-            $this->saveAnnotations($aChema);
+            $this->saveAnnotations($aSchema);
         }
 
-        return $aChema;
+        return $aSchema;
     }
 
     /**
@@ -95,7 +93,11 @@ abstract class Annotation
      */
     protected function initializeAnnotations($sClassName)
     {
-        $this->oCache = (new Cache)->start(static::CACHE_GROUP, $sClassName, null); // The last parameter is NULL, then the cache will never expire
+        $this->oCache = (new Cache)->start(
+            static::CACHE_GROUP,
+            $sClassName,
+            null // The last parameter is NULL, then the cache will never expire
+        );
     }
 
     /**

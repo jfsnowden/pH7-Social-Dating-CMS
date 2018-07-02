@@ -1,13 +1,14 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Affiliate / Model
  */
 
 namespace PH7;
 
+use PH7\Framework\Date\CDateTime;
 use PH7\Framework\Mvc\Model\Engine\Db;
 use PH7\Framework\Security\Security;
 
@@ -18,11 +19,11 @@ class AffiliateModel extends AffiliateCoreModel
      *
      * @param array $aData
      *
-     * @return boolean Returns TRUE on success or FALSE on failure.
+     * @return bool Returns TRUE on success or FALSE on failure.
      */
     public function join(array $aData)
     {
-        $rStmt = Db::getInstance()->prepare('INSERT INTO' . Db::prefix('Affiliates') .
+        $rStmt = Db::getInstance()->prepare('INSERT INTO' . Db::prefix(DbTableName::AFFILIATE) .
             '(email, username, password, firstName, lastName, sex, birthDate, active, ip, hashValidation, joinDate, lastActivity, affiliatedId)
             VALUES (:email, :username, :password, :firstName, :lastName, :sex, :birthDate, :active, :ip, :hashValidation, :joinDate, :lastActivity, :affiliatedId)');
 
@@ -35,7 +36,7 @@ class AffiliateModel extends AffiliateCoreModel
         $rStmt->bindValue(':birthDate', $aData['birth_date'], \PDO::PARAM_STR);
         $rStmt->bindValue(':active', $aData['is_active'], \PDO::PARAM_INT);
         $rStmt->bindValue(':ip', $aData['ip'], \PDO::PARAM_STR);
-        $rStmt->bindParam(':hashValidation', $aData['hash_validation'], \PDO::PARAM_STR, 40);
+        $rStmt->bindParam(':hashValidation', $aData['hash_validation'], \PDO::PARAM_STR, self::HASH_VALIDATION_LENGTH);
         $rStmt->bindValue(':joinDate', $aData['current_date'], \PDO::PARAM_STR);
         $rStmt->bindValue(':lastActivity', $aData['current_date'], \PDO::PARAM_STR);
         $rStmt->bindValue(':affiliatedId', $aData['affiliated_id'], \PDO::PARAM_INT);
@@ -51,11 +52,11 @@ class AffiliateModel extends AffiliateCoreModel
      *
      * @param array $aData
      *
-     * @return boolean Returns TRUE on success or FALSE on failure.
+     * @return bool Returns TRUE on success or FALSE on failure.
      */
     public function join2(array $aData)
     {
-        $rStmt = Db::getInstance()->prepare('INSERT INTO' . Db::prefix('AffiliatesInfo') .
+        $rStmt = Db::getInstance()->prepare('INSERT INTO' . Db::prefix(DbTableName::AFFILIATE_INFO) .
             '(profileId, country, city, state, zipCode) VALUES (:profileId, :country, :city, :state, :zipCode)');
 
         $rStmt->bindValue(':profileId', $this->getKeyId(), \PDO::PARAM_INT);
@@ -70,13 +71,13 @@ class AffiliateModel extends AffiliateCoreModel
     /**
      * Add a reference affiliate.
      *
-     * @param integer $iProfileId
+     * @param int $iProfileId
      *
-     * @return boolean Returns TRUE on success or FALSE on failure.
+     * @return bool Returns TRUE on success or FALSE on failure.
      */
     public function addRefer($iProfileId)
     {
-        $rStmt = Db::getInstance()->prepare('UPDATE' . Db::prefix('Affiliates') . 'SET refer = refer+1 WHERE profileId = :profileId');
+        $rStmt = Db::getInstance()->prepare('UPDATE' . Db::prefix(DbTableName::AFFILIATE) . 'SET refer = refer+1 WHERE profileId = :profileId');
         $rStmt->bindValue(':profileId', $iProfileId, \PDO::PARAM_INT);
         Db::free($rStmt);
 
@@ -86,14 +87,14 @@ class AffiliateModel extends AffiliateCoreModel
     /**
      * Search an affiliate.
      *
-     * @param integer|string $mLooking (integer for profile ID or string for a keyword)
-     * @param boolean $bCount Put 'true' for count the affiliates or 'false' for the result of affiliates.
+     * @param int|string $mLooking (integer for profile ID or string for a keyword)
+     * @param bool $bCount Put 'true' for count the affiliates or 'false' for the result of affiliates.
      * @param string $sOrderBy
-     * @param integer $iSort
-     * @param integer $iOffset
-     * @param integer $iLimit
+     * @param int $iSort
+     * @param int $iOffset
+     * @param int $iLimit
      *
-     * @return object|integer Object for the affiliate list or Integer for the total number users returned.
+     * @return array|int An array containing stdClass object with the affiliates or an integer for the total number of users returned.
      */
     public function searchAff($mLooking, $bCount, $sOrderBy, $iSort, $iOffset, $iLimit)
     {
@@ -105,17 +106,20 @@ class AffiliateModel extends AffiliateCoreModel
         $sSqlLimit = (!$bCount) ? ' LIMIT :offset, :limit' : '';
         $sSqlSelect = (!$bCount) ? '*' : 'COUNT(a.profileId) AS totalUsers';
 
+        $sSqlWhere = ' WHERE username LIKE :looking OR firstName LIKE :looking OR lastName LIKE :looking OR email LIKE :looking OR bankAccount LIKE :looking OR sex LIKE :looking OR ip LIKE :looking';
         if (ctype_digit($mLooking)) {
             $sSqlWhere = ' WHERE a.profileId = :looking';
-        } else {
-            $sSqlWhere = ' WHERE username LIKE :looking OR firstName LIKE :looking OR lastName LIKE :looking OR email LIKE :looking OR bankAccount LIKE :looking OR sex LIKE :looking OR ip LIKE :looking';
         }
 
         $sSqlOrder = SearchCoreModel::order($sOrderBy, $iSort);
 
-        $rStmt = Db::getInstance()->prepare('SELECT ' . $sSqlSelect . ' FROM' . Db::prefix('Affiliates') . 'AS a LEFT JOIN' . Db::prefix('AffiliatesInfo') . 'AS i ON a.profileId = i.profileId' . $sSqlWhere . $sSqlOrder . $sSqlLimit);
+        $rStmt = Db::getInstance()->prepare('SELECT ' . $sSqlSelect . ' FROM' . Db::prefix(DbTableName::AFFILIATE) . 'AS a LEFT JOIN' . Db::prefix(DbTableName::AFFILIATE_INFO) . 'AS i ON a.profileId = i.profileId' . $sSqlWhere . $sSqlOrder . $sSqlLimit);
 
-        (ctype_digit($mLooking)) ? $rStmt->bindValue(':looking', $mLooking, \PDO::PARAM_INT) : $rStmt->bindValue(':looking', '%' . $mLooking . '%', \PDO::PARAM_STR);
+        if (ctype_digit($mLooking)) {
+            $rStmt->bindValue(':looking', $mLooking, \PDO::PARAM_INT);
+        } else {
+            $rStmt->bindValue(':looking', '%' . $mLooking . '%', \PDO::PARAM_STR);
+        }
 
         if (!$bCount) {
             $rStmt->bindParam(':offset', $iOffset, \PDO::PARAM_INT);
@@ -141,13 +145,13 @@ class AffiliateModel extends AffiliateCoreModel
      *
      * @param array $aData
      *
-     * @return integer The ID of the Affiliate.
+     * @return int The ID of the Affiliate.
      */
     public function add(array $aData)
     {
-        $sCurrentDate = (new Framework\Date\CDateTime)->get()->dateTime('Y-m-d H:i:s');
+        $sCurrentDate = (new CDateTime)->get()->dateTime('Y-m-d H:i:s');
 
-        $rStmt = Db::getInstance()->prepare('INSERT INTO' . Db::prefix('Affiliates') . '(email, username, password, firstName, lastName, sex, birthDate, bankAccount, ip, joinDate, lastActivity)
+        $rStmt = Db::getInstance()->prepare('INSERT INTO' . Db::prefix(DbTableName::AFFILIATE) . '(email, username, password, firstName, lastName, sex, birthDate, bankAccount, ip, joinDate, lastActivity)
         VALUES (:email, :username, :password, :firstName, :lastName, :sex, :birthDate, :bankAccount, :ip, :joinDate, :lastActivity)');
 
         $rStmt->bindValue(':email', trim($aData['email']), \PDO::PARAM_STR);
@@ -171,7 +175,7 @@ class AffiliateModel extends AffiliateCoreModel
 
     public function setInfoFields(array $aData)
     {
-        $rStmt = Db::getInstance()->prepare('INSERT INTO' . Db::prefix('AffiliatesInfo') . '(profileId, middleName, country, city, state, zipCode, phone, description, website)
+        $rStmt = Db::getInstance()->prepare('INSERT INTO' . Db::prefix(DbTableName::AFFILIATE_INFO) . '(profileId, middleName, country, city, state, zipCode, phone, description, website)
             VALUES (:profileId, :middleName, :country, :city, :state, :zipCode, :phone, :description, :website)');
 
         $rStmt->bindValue(':profileId', $this->getKeyId(), \PDO::PARAM_INT);
@@ -190,13 +194,13 @@ class AffiliateModel extends AffiliateCoreModel
     /**
      * Get the Affiliate's Amount.
      *
-     * @param integer $iProfileId
+     * @param int $iProfileId
      *
-     * @return integer|float The amount
+     * @return int|float The amount
      */
     public function getAmount($iProfileId)
     {
-        $rStmt = Db::getInstance()->prepare('SELECT amount FROM' . Db::prefix('Affiliates') . ' WHERE profileId = :profileId LIMIT 1');
+        $rStmt = Db::getInstance()->prepare('SELECT amount FROM' . Db::prefix(DbTableName::AFFILIATE) . ' WHERE profileId = :profileId LIMIT 1');
         $rStmt->bindValue(':profileId', $iProfileId, \PDO::PARAM_INT);
         $rStmt->execute();
         $oRow = $rStmt->fetch(\PDO::FETCH_OBJ);

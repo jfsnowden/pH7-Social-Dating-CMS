@@ -1,7 +1,7 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Affiliate / Form / Processing
  */
@@ -19,6 +19,7 @@ use PH7\Framework\Util\Various;
 
 class JoinFormProcess extends Form
 {
+    /** @var int */
     private $iActiveType;
 
     public function __construct()
@@ -46,16 +47,16 @@ class JoinFormProcess extends Form
             'state' => $this->httpRequest->post('state'),
             'zip_code' => $this->httpRequest->post('zip_code'),
             'ip' => Ip::get(),
-            'hash_validation' => Various::genRnd(),
-            'current_date' => (new CDateTime)->get()->dateTime('Y-m-d H:i:s'),
+            'hash_validation' => Various::genRnd(null, UserCoreModel::HASH_VALIDATION_LENGTH),
+            'current_date' => (new CDateTime)->get()->dateTime(UserCoreModel::DATETIME_FORMAT),
             'is_active' => $this->iActiveType,
             'affiliated_id' => $iAffId
         ];
 
         $oAffModel = new AffiliateModel;
 
-        $iTimeDelay = (int)DbConfig::getSetting('timeDelayUserRegistration');
-        if (!$oAffModel->checkWaitJoin($aData['ip'], $iTimeDelay, $aData['current_date'], 'Affiliates')) {
+        $iTimeDelay = (int)DbConfig::getSetting('timeDelayAffRegistration');
+        if (!$oAffModel->checkWaitJoin($aData['ip'], $iTimeDelay, $aData['current_date'], DbTableName::AFFILIATE)) {
             \PFBC\Form::setError('form_join_aff', Form::waitRegistrationMsg($iTimeDelay));
         } elseif (!$oAffModel->join($aData)) {
             \PFBC\Form::setError('form_join_aff',
@@ -66,13 +67,25 @@ class JoinFormProcess extends Form
             // Successful registration in the database!
 
             /** Update the Affiliate Commission **/
-            if ($this->iActiveType == 0) // Only if the user's account is already activated.
+            if ($this->isUserActivated()) {
                 AffiliateCore::updateJoinCom($iAffId, $this->config, $this->registry);
+            }
 
             // Send an email and sets the welcome message.
-            \PFBC\Form::setSuccess('form_join_aff', t('Your affiliate account has been created! %0%', (new Registration)->sendMail($aData)->getMsg()));
+            \PFBC\Form::setSuccess(
+                'form_join_aff',
+                t('Your affiliate account has been created! %0%', (new Registration($this->view))->sendMail($aData)->getMsg())
+            );
         }
 
         unset($oAffModel);
+    }
+
+    /**
+     * @return bool
+     */
+    private function isUserActivated()
+    {
+        return $this->iActiveType == 1;
     }
 }

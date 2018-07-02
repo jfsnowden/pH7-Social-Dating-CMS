@@ -1,6 +1,6 @@
 /*!
  * Author:        Pierre-Henry Soria <hello@ph7cms.com>
- * Copyright:     (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * Copyright:     (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * License:       GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  */
 
@@ -61,15 +61,17 @@ function pH7Include(mFile) {
 (function () {
     $('a').click(function () {
         var href = $(this).attr('href');
+
         if (
-            -1 == href.indexOf('ph7cms.com') && -1 == href.indexOf('youtube.com') &&
-            -1 == href.indexOf('youtu.be') && -1 == href.indexOf('vimeo.com') &&
-            -1 == href.indexOf('dailymotion.com') && -1 == href.indexOf('metacafe.com') &&
-            -1 == href.indexOf('gravatar.com') && -1 == href.indexOf('softaculous.com') &&
-            (-1 != href.indexOf('http://') || -1 != href.indexOf('https://'))
+            href.indexOf('ph7cms.com') == -1 && href.indexOf('youtube.com') == -1 &&
+            href.indexOf('youtu.be') == -1 && href.indexOf('vimeo.com') == -1 &&
+            href.indexOf('dailymotion.com') == -1 && href.indexOf('metacafe.com') == -1 &&
+            href.indexOf('gravatar.com') == -1 && href.indexOf('softaculous.com') == -1 &&
+            (href.indexOf('http://') != -1 || href.indexOf('https://') != -1)
+
         ) {
             var host = href.substr(href.indexOf(':') + 3);
-            if (-1 != host.indexOf('/')) {
+            if (host.indexOf('/') != -1) {
                 host = host.substring(0, host.indexOf('/'));
             }
             if (host != window.location.host) {
@@ -80,6 +82,5 @@ function pH7Include(mFile) {
     })
 })();
 
-// Only if you hold a valid Pro License (http://ph7cms.com/pro), you can remove the following
 console.log('This Web App has been made with http://pH7CMS.com | The Social App Builder'
     + "\r\n" + 'GitHub: http://github.com/pH7Software/pH7-Social-Dating-CMS');

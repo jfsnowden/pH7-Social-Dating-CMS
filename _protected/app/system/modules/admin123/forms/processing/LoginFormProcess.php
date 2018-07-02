@@ -1,7 +1,7 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Admin / From / Processing
  */
@@ -20,6 +20,9 @@ use PH7\Framework\Url\Header;
 
 class LoginFormProcess extends Form implements LoginableForm
 {
+    const BRUTE_FORCE_SLEEP_DELAY = 2;
+
+    /** @var AdminModel */
     private $oAdminModel;
 
     public function __construct()
@@ -43,7 +46,15 @@ class LoginFormProcess extends Form implements LoginableForm
         $iMaxAttempts = (int)DbConfig::getSetting('maxAdminLoginAttempts');
         $iTimeDelay = (int)DbConfig::getSetting('loginAdminAttemptTime');
 
-        if ($bIsLoginAttempt && !$oSecurityModel->checkLoginAttempt($iMaxAttempts, $iTimeDelay, $sEmail, $this->view, 'Admins')) {
+        if ($bIsLoginAttempt &&
+            !$oSecurityModel->checkLoginAttempt(
+                $iMaxAttempts,
+                $iTimeDelay,
+                $sEmail,
+                $this->view,
+                DbTableName::ADMIN
+            )
+        ) {
             \PFBC\Form::setError('form_admin_login', Form::loginAttemptsExceededMsg($iTimeDelay));
             return; // Stop execution of the method.
         }
@@ -54,13 +65,19 @@ class LoginFormProcess extends Form implements LoginableForm
 
         if (!$bIsLogged || $bIpNotAllowed) // If the login is failed or if the IP address is not allowed
         {
-            sleep(2); // Security against brute-force attack to avoid drowning the server and the database
+            $this->preventBruteForce(self::BRUTE_FORCE_SLEEP_DELAY);
 
             if (!$bIsLogged) {
-                $oSecurityModel->addLoginLog($sEmail, $sUsername, $sPassword, 'Failed! Incorrect Email, Username or Password', 'Admins');
+                $oSecurityModel->addLoginLog(
+                    $sEmail,
+                    $sUsername,
+                    $sPassword,
+                    'Failed! Incorrect Email, Username or Password',
+                    DbTableName::ADMIN
+                );
 
                 if ($bIsLoginAttempt) {
-                    $oSecurityModel->addLoginAttempt('Admins');
+                    $oSecurityModel->addLoginAttempt(DbTableName::ADMIN);
                 }
 
                 $this->enableCaptcha();
@@ -68,13 +85,19 @@ class LoginFormProcess extends Form implements LoginableForm
             } elseif ($bIpNotAllowed) {
                 $this->enableCaptcha();
                 \PFBC\Form::setError('form_admin_login', t('Incorrect Login!'));
-                $oSecurityModel->addLoginLog($sEmail, $sUsername, $sPassword, 'Failed! Wrong IP address', 'Admins');
+                $oSecurityModel->addLoginLog(
+                    $sEmail,
+                    $sUsername,
+                    $sPassword,
+                    'Failed! Wrong IP address',
+                    DbTableName::ADMIN
+                );
             }
         } else {
-            $oSecurityModel->clearLoginAttempts('Admins');
+            $oSecurityModel->clearLoginAttempts(DbTableName::ADMIN);
             $this->session->remove('captcha_admin_enabled');
-            $iId = $this->oAdminModel->getId($sEmail, null, 'Admins');
-            $oAdminData = $this->oAdminModel->readProfile($iId, 'Admins');
+            $iId = $this->oAdminModel->getId($sEmail, null, DbTableName::ADMIN);
+            $oAdminData = $this->oAdminModel->readProfile($iId, DbTableName::ADMIN);
 
             $this->updatePwdHashIfNeeded($sPassword, $oAdminData->password, $sEmail);
 
@@ -83,11 +106,18 @@ class LoginFormProcess extends Form implements LoginableForm
                 // Store the admin ID for 2FA
                 $this->session->set(TwoFactorAuthCore::PROFILE_ID_SESS_NAME, $iId);
 
-                Header::redirect(Uri::get('two-factor-auth', 'main', 'verificationcode', PH7_ADMIN_MOD));
+                Header::redirect(
+                    Uri::get(
+                        'two-factor-auth', 'main', 'verificationcode', PH7_ADMIN_MOD
+                    )
+                );
             } else {
                 (new AdminCore)->setAuth($oAdminData, $this->oAdminModel, $this->session, $oSecurityModel);
 
-                Header::redirect(Uri::get(PH7_ADMIN_MOD, 'main', 'index'), t('You are successfully logged in!'));
+                Header::redirect(
+                    Uri::get(PH7_ADMIN_MOD, 'main', 'index'),
+                    t('You are successfully logged in!')
+                );
             }
         }
     }
@@ -98,7 +128,7 @@ class LoginFormProcess extends Form implements LoginableForm
     public function updatePwdHashIfNeeded($sPassword, $sUserPasswordHash, $sEmail)
     {
         if ($sNewPwdHash = Security::pwdNeedsRehash($sPassword, $sUserPasswordHash)) {
-            $this->oAdminModel->changePassword($sEmail, $sNewPwdHash, 'Admins');
+            $this->oAdminModel->changePassword($sEmail, $sNewPwdHash, DbTableName::ADMIN);
         }
     }
 

@@ -4,7 +4,7 @@
  * @desc           Protects against Cross-site request forgery attack.
  *
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / Framework / Security / CSRF
  * @version        1.2
@@ -18,14 +18,14 @@ use PH7\AdminCore;
 use PH7\AffiliateCore;
 use PH7\Framework\Ip\Ip;
 use PH7\Framework\Mvc\Model\DbConfig;
-use PH7\Framework\Mvc\Request\Http;
+use PH7\Framework\Mvc\Request\Http as HttpRequest;
 use PH7\Framework\Navigation\Browser;
 use PH7\Framework\Session\Session;
 use PH7\Framework\Util\Various;
 use PH7\UserCore;
 
 /**
- * This class provides functions of numbers against the XSS (Cross-site scripting) vulnerability.
+ * This class provides functions of numbers against XSS (Cross-site scripting) vulnerability.
  * PH Security Token (PHST)
  */
 final class Token
@@ -38,21 +38,21 @@ final class Token
     const VAR_NAME = 'pHST';
 
     /** @var Session */
-    private $_oSession;
+    private $oSession;
 
     /** @var null|string */
-    private $_sHttpReferer;
+    private $sHttpReferer;
 
     /** @var null|string */
-    private $_sUserAgent;
+    private $sUserAgent;
 
     public function __construct()
     {
-        $this->_oSession = new Session;
+        $this->oSession = new Session;
 
         $oBrowser = new Browser;
-        $this->_sHttpReferer = $oBrowser->getHttpReferer();
-        $this->_sUserAgent = $oBrowser->getUserAgent();
+        $this->sHttpReferer = $oBrowser->getHttpReferer();
+        $this->sUserAgent = $oBrowser->getUserAgent();
         unset($oBrowser);
     }
 
@@ -66,8 +66,8 @@ final class Token
     public function generate($sName)
     {
         // If the token is still valid, it returns the correct token
-        if ($this->_oSession->exists('security_token_' . $sName)) {
-            return $this->_oSession->get('security_token_' . $sName);
+        if ($this->oSession->exists('security_token_' . $sName)) {
+            return $this->oSession->get('security_token_' . $sName);
         }
 
         $sToken = Various::genRnd($sName);
@@ -75,12 +75,12 @@ final class Token
         $aSessionData = [
             'security_token_' . $sName => $sToken,
             'security_token_time_' . $sName => time(),
-            //'security_token_http_referer_' . $sName => $this->_sHttpReferer,
+            //'security_token_http_referer_' . $sName => $this->sHttpReferer,
             'security_token_ip_' . $sName => Ip::get(),
-            'security_token_http_user_agent_' . $sName => $this->_sUserAgent
+            'security_token_http_user_agent_' . $sName => $this->sUserAgent
         ];
 
-        $this->_oSession->set($aSessionData);
+        $this->oSession->set($aSessionData);
 
         return $sToken;
     }
@@ -89,9 +89,9 @@ final class Token
      * @param string $sName Name of the Token.
      *
      * @param string $sInputToken The name of the token inserted in the hidden tag of the form.
-     * (e.g. for a from with method "post" and the field "<input type="hidden" name="my_token" />" the name of the token is "$_POST['my_token']" Default NULL
+     * (e.g. for a from with method "post" and the field "<input type="hidden" name="my_token" />" the name of the token is "$_POST['my_token']"
      *
-     * @param int $iTime Lifetime of token in seconds. Default NULL (value specified in the database settings).
+     * @param int $iTime Lifetime of token in seconds (value specified in the database settings).
      *
      * @return bool Returns TRUE if the token is validated, FALSE otherwise.
      */
@@ -100,7 +100,7 @@ final class Token
         $iTime = ($iTime === null) ? DbConfig::getSetting('securityTokenLifetime') : $iTime;
 
         // The default tag name for the security token
-        $sInputToken = (empty($sInputToken)) ? (new Http)->post('security_token') : $sInputToken;
+        $sInputToken = (empty($sInputToken)) ? (new HttpRequest)->post('security_token') : $sInputToken;
 
         $aCheckSession = [
             'security_token_' . $sName,
@@ -110,19 +110,19 @@ final class Token
             'security_token_http_user_agent_' . $sName
         ];
 
-        if ($this->_oSession->exists($aCheckSession) && !empty($sInputToken))
-            if ($this->_oSession->get('security_token_' . $sName) === $sInputToken)
-                if ($this->_oSession->get('security_token_time_' . $sName) >= (time() - $iTime))
-                    //if ($this->_sHttpReferer === $this->_oSession->get('security_token_http_referer_' . $sName))
-                        if (Ip::get() === $this->_oSession->get('security_token_ip_' . $sName))
-                            if ($this->_sUserAgent === $this->_oSession->get('security_token_http_user_agent_' . $sName)) {
+        if ($this->oSession->exists($aCheckSession) && !empty($sInputToken))
+            if ($this->oSession->get('security_token_' . $sName) === $sInputToken)
+                if ($this->oSession->get('security_token_time_' . $sName) >= (time() - $iTime))
+                    //if ($this->sHttpReferer === $this->oSession->get('security_token_http_referer_' . $sName))
+                        if (Ip::get() === $this->oSession->get('security_token_ip_' . $sName))
+                            if ($this->sUserAgent === $this->oSession->get('security_token_http_user_agent_' . $sName)) {
                                 // Delete the token and data sessions expired
-                                $this->_oSession->remove($aCheckSession);
+                                $this->oSession->remove($aCheckSession);
                                 return true;
                             }
 
         // Delete the token and data sessions expired
-        $this->_oSession->remove($aCheckSession);
+        $this->oSession->remove($aCheckSession);
 
         return false;
     }
@@ -134,7 +134,7 @@ final class Token
      */
     public function url()
     {
-        return ($this->currentSess() !== true) ? '?' . static::VAR_NAME . '=' . $this->currentSess() : '';
+        return ($this->currentSess() !== true ? '?' . static::VAR_NAME . '=' . $this->currentSess() : '');
     }
 
     /**
@@ -144,8 +144,9 @@ final class Token
      */
     public function checkUrl()
     {
-        $oHttpRequest = new Http;
-        $bRet = ( ($this->currentSess() === true) || $oHttpRequest->currentUrl() === PH7_URL_ROOT || ($oHttpRequest->get(static::VAR_NAME) === $this->currentSess()) );
+        $oHttpRequest = new HttpRequest;
+        $bRet = (($this->currentSess() === true) || $oHttpRequest->currentUrl() === PH7_URL_ROOT ||
+            ($oHttpRequest->get(static::VAR_NAME) === $this->currentSess()));
         unset($oHttpRequest);
 
         return $bRet;
@@ -158,15 +159,20 @@ final class Token
      */
     private function currentSess()
     {
-        if (UserCore::auth())
-            $sToken = $this->_oSession->get('member_token');
-        elseif (AdminCore::auth())
-            $sToken = $this->_oSession->get('admin_token');
-        elseif (AffiliateCore::auth())
-            $sToken = $this->_oSession->get('affiliate_token');
-        else $sToken = true; // If nobody is logged on, we did not need to do this test, so it returns true
+        if (UserCore::auth()) {
+            return $this->oSession->get('member_token');
+        }
 
-        return $sToken;
+        if (AdminCore::auth()) {
+            return $this->oSession->get('admin_token');
+        }
+
+        if (AffiliateCore::auth()) {
+            return $this->oSession->get('affiliate_token');
+        }
+
+        // If nobody is logged on, we did not need to do this test, so let's return TRUE
+        return true;
     }
 
     /**

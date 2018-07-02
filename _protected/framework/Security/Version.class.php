@@ -4,7 +4,7 @@
  * @desc             Version Information for the security of packaged software.
  *
  * @author           Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright        (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / Framework / Security
  */
@@ -14,6 +14,7 @@ namespace PH7\Framework\Security;
 defined('PH7') or exit('Restricted access');
 
 use DOMDocument;
+use DOMElement;
 use PH7\Framework\Cache\Cache;
 use PH7\Framework\Security\Validate\Validate;
 
@@ -21,19 +22,21 @@ final class Version
 {
     const CACHE_TIME = 86400; // 1 day
     const LATEST_VERSION_URL = 'http://xml.ph7cms.com/software-info.xml';
-    const PATTERN = '\d{1,2}\.\d{1,2}\.\d{1,2}';
+    const VERSION_PATTERN = '\d{1,2}\.\d{1,2}\.\d{1,2}';
+    const FRAMEWORK_TAG_NAME = 'ph7';
+    const PACKAGE_TAG_NAME = 'ph7builder';
 
     /**
      * Framework Kernel.
      *
      * VERSION NAMES:
      * 1.0, 1.1 branches were "pOH", 1.2 was "pOW", 1.3, 1.4 were "p[H]", 2.* was "H2O", 3.* was "H3O", 4.* was "HCO",
-     * 5.* was "pCO", 6.* was "WoW", 7.*, 8.* were "NaOH" and 10.* is "pKa"
+     * 5.* was "pCO", 6.* was "WoW", 7.*, 8.* were "NaOH", 10.* was "pKa" and 12.* is "PHS"
      */
-    const KERNEL_VERSION_NAME = 'pKa';
-    const KERNEL_VERSION = '10.0.8';
+    const KERNEL_VERSION_NAME = 'PHS';
+    const KERNEL_VERSION = '12.9.9';
     const KERNEL_BUILD = '1';
-    const KERNEL_RELASE_DATE = '2018-01-03';
+    const KERNEL_RELEASE_DATE = '2018-07-30';
 
     /***** Framework Server *****/
     const KERNEL_TECHNOLOGY_NAME = 'pH7T/1.0.1'; // Ph7 Technology
@@ -42,10 +45,12 @@ final class Version
     /**
      * Private constructor to prevent instantiation of class since it's a static class.
      */
-    private function __construct() {}
+    private function __construct()
+    {
+    }
 
     /**
-     * Gets information on the lastest software version.
+     * Gets information on the latest software version.
      *
      * @return array|bool Returns version information in an array or FALSE if an error occurred.
      */
@@ -59,18 +64,24 @@ final class Version
                 return false;
             }
 
-            foreach ($oDom->getElementsByTagName('ph7') as $oSoft) {
-                foreach ($oSoft->getElementsByTagName('social-dating-cms') as $oInfo) {
-                    // "Validate::bool()" returns TRUE for "1", "true", "on" and "yes", FALSE otherwise
-                    $bIsAlert = (new Validate)->bool($oInfo->getElementsByTagName('upd-alert')->item(0)->nodeValue);
-                    $sVerName = $oInfo->getElementsByTagName('name')->item(0)->nodeValue;
-                    $sVerNumber = $oInfo->getElementsByTagName('version')->item(0)->nodeValue;
-                    $sVerBuild = $oInfo->getElementsByTagName('build')->item(0)->nodeValue;
-                }
+            /** @var DOMElement $oSoft */
+            foreach ($oDom->getElementsByTagName(self::FRAMEWORK_TAG_NAME) as $oSoft) {
+                // Get info for "ph7builder" package
+                $oInfo = $oSoft->getElementsByTagName(self::PACKAGE_TAG_NAME)->item(0);
+
+                $bIsAlert = self::isUpdateAlertEnabled($oInfo);
+                $sVerName = $oInfo->getElementsByTagName('name')->item(0)->nodeValue;
+                $sVerNumber = $oInfo->getElementsByTagName('version')->item(0)->nodeValue;
+                $sVerBuild = $oInfo->getElementsByTagName('build')->item(0)->nodeValue;
             }
             unset($oDom);
 
-            $mData = array('is_alert' => $bIsAlert, 'name' => $sVerName, 'version' => $sVerNumber, 'build' => $sVerBuild);
+            $mData = [
+                'is_alert' => $bIsAlert,
+                'name' => $sVerName,
+                'version' => $sVerNumber,
+                'build' => $sVerBuild
+            ];
             $oCache->put($mData);
         }
         unset($oCache);
@@ -95,7 +106,7 @@ final class Version
         $sLastBuild = $aLatestInfo['build'];
         unset($aLatestInfo);
 
-        if (!$bIsAlert || !is_string($sLastName) || !preg_match('#^' . self::PATTERN . '$#', $sLastVer)) {
+        if (!$bIsAlert || !is_string($sLastName) || !preg_match('#^' . self::VERSION_PATTERN . '$#', $sLastVer)) {
             return false;
         }
 
@@ -110,5 +121,16 @@ final class Version
         }
 
         return false;
+    }
+
+    /**
+     * @param DOMElement $oInfo
+     *
+     * @return bool
+     */
+    private static function isUpdateAlertEnabled(DOMElement $oInfo)
+    {
+        // "Validate::bool()" returns TRUE for "1", "true", "on" and "yes", FALSE otherwise
+        return (new Validate)->bool($oInfo->getElementsByTagName('upd-alert')->item(0)->nodeValue);
     }
 }

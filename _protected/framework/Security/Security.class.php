@@ -3,7 +3,7 @@
  * @title          Security Class
  *
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / Framework / Security
  * @version        1.2
@@ -21,6 +21,10 @@ use PH7\Framework\Util\Various;
 
 final class Security
 {
+    const HASH_LENGTH = 80;
+    const COOKIE_HASH_LENGTH = 40;
+    const PBKDF2_ITERATION = 10000;
+
     const PWD_ALGORITHM = PASSWORD_BCRYPT;
     const PWD_WORK_FACTOR = 12;
 
@@ -31,7 +35,8 @@ final class Security
     const PREFIX_SALT = 'c好，你今Здраврыве ты ў паітаньне е54йте天rt&eh好嗎_dمرحبا أنت بخير ال好嗎attú^u5atá inniu4a,?478привіなたは大丈夫今日はтивпряьоהעלאai54ng_scси днесpt';
     const SUFFIX_SALT = '*éà12_you_è§§=≃ù%µµ££$);&,?µp{èàùf*sxdslut_waruआप नमस्क你好，你今ार ठΓει好嗎α σαςb안녕하세oi요 괜찮은 o नमस्कार ठीnjre;,?*-<καλά σήμεραीक आजсегодняm_54tjהעלאdgezsядкمرحبا';
 
-    private static $_aPwdOptions = ['cost' => self::PWD_WORK_FACTOR];
+    /** @var array */
+    private static $aPwdOptions = ['cost' => self::PWD_WORK_FACTOR];
 
     /**
      * Private constructor to prevent instantiation of class since it's a static class.
@@ -47,7 +52,7 @@ final class Security
      */
     public static function hashPwd($sPassword)
     {
-        return password_hash($sPassword , self::PWD_ALGORITHM, self::$_aPwdOptions);
+        return password_hash($sPassword, self::PWD_ALGORITHM, self::$aPwdOptions);
     }
 
     /**
@@ -56,7 +61,7 @@ final class Security
      * @param string $sPassword
      * @param string $sHash
      *
-     * @return boolean
+     * @return bool
      */
     public static function checkPwd($sPassword, $sHash)
     {
@@ -69,11 +74,11 @@ final class Security
      * @param string $sPassword
      * @param string $sHash
      *
-     * @return string|boolean Returns the new password if the password needs to be rehash, otherwise FALSE
+     * @return string|bool Returns the new password if the password needs to be rehash, otherwise FALSE
      */
     public static function pwdNeedsRehash($sPassword, $sHash)
     {
-        if (password_needs_rehash($sHash, self::PWD_ALGORITHM, self::$_aPwdOptions)) {
+        if (password_needs_rehash($sHash, self::PWD_ALGORITHM, self::$aPwdOptions)) {
             return self::hashPwd($sPassword);
         }
 
@@ -84,13 +89,13 @@ final class Security
      * Generate a hash for Cookie Password encryption.
      *
      * @param string $sPassword
-     * @param integer $iLength Default: 40
+     * @param int $iLength
      *
      * @return string The password hashed.
      *
      * @throws PH7InvalidArgumentException
      */
-    public static function hashCookie($sPassword, $iLength = 40)
+    public static function hashCookie($sPassword, $iLength = self::COOKIE_HASH_LENGTH)
     {
         return self::userHash($sPassword, $iLength);
     }
@@ -99,23 +104,23 @@ final class Security
      * Generate a hash.
      *
      * @param string $sVal
-     * @param integer $iLength Default 80
+     * @param int $iLength
      *
      * @return string
      */
-    public static function hash($sVal, $iLength = 80)
+    public static function hash($sVal, $iLength = self::HASH_LENGTH)
     {
         return Various::padStr(
             hash(self::WHIRLPOOL_ALGORITHM, hash(self::SHA512_ALGORITHM, self::PREFIX_SALT . hash(self::WHIRLPOOL_ALGORITHM, self::PREFIX_SALT)) . hash(self::WHIRLPOOL_ALGORITHM, $sVal) . hash(self::SHA512_ALGORITHM, hash(self::WHIRLPOOL_ALGORITHM, self::SUFFIX_SALT) . self::SUFFIX_SALT)),
-             $iLength
-         );
+            $iLength
+        );
     }
 
     /**
      * Generate a user hash.
      *
      * @param string $sVal
-     * @param integer $iLength
+     * @param int $iLength
      * @param string $sAlgo The algorithm. Only 'whirlpool' or 'sha512' are accepted.
      *
      * @return string
@@ -129,6 +134,7 @@ final class Security
         }
 
         $sSalt = self::PREFIX_SALT . Ip::get() . self::SUFFIX_SALT . (new Browser)->getUserAgent();
-        return hash_pbkdf2($sAlgo, $sVal, $sSalt, 10000, $iLength);
+
+        return hash_pbkdf2($sAlgo, $sVal, $sSalt, self::PBKDF2_ITERATION, $iLength);
     }
 }

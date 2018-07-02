@@ -1,6 +1,6 @@
 /*!
  * Author:        Pierre-Henry Soria <ph7software@gmail.com>
- * Copyright:     (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * Copyright:     (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * License:       GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * Version:       0.8
  */
@@ -105,7 +105,7 @@ function Wall() {
     this._output = function (oData) {
         if (oData.status == 1) {
             $('.msg').addClass('alert alert-success');
-            $('#wall_' + oData.msgId).hide("slow");
+            $('#wall_' + oData.msgId).hide('slow');
         } else {
             $('.msg').addClass('alert alert-danger');
         }

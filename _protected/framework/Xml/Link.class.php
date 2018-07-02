@@ -3,11 +3,11 @@
  * @title            Link Class
  * @desc             Gets the Links in the XML file.
  *
- * @author           Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright        (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @author           Pierre-Henry Soria <hello@ph7cms.com>
+ * @copyright        (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / Framework / Xml
- * @version          1.0
+ * @version          1.4
  */
 
 namespace PH7\Framework\Xml;
@@ -15,17 +15,24 @@ namespace PH7\Framework\Xml;
 defined('PH7') or exit('Restricted access');
 
 use DOMDocument;
+use PH7\Framework\Cache\Cache;
 
 class Link
 {
+    const CACHE_GROUP = 'str/xml';
+    const CACHE_LIFETIME = 604800; // A week
+
     /** @var DOMDocument */
-    private $_oXml;
+    private $oXml;
+
+    /** @var Cache */
+    private $oCache;
 
     /** @var string */
-    private $_sPath;
+    private $sPath;
 
     /** @var array */
-    private $_aRet = array();
+    private $aRet = [];
 
     /**
      * Constructor with the instance of the DOMDocument object.
@@ -34,8 +41,9 @@ class Link
      */
     public function __construct($sPath)
     {
-        $this->_sPath = $sPath;
-        $this->_oXml = new DOMDocument;
+        $this->sPath = $sPath;
+        $this->oXml = new DOMDocument;
+        $this->oCache = new Cache;
     }
 
     /**
@@ -47,14 +55,19 @@ class Link
      */
     public function get()
     {
-        if (!@$this->_oXml->load($this->_sPath)) {
-            throw new Exception('The file \'' . $this->_sPath . '\' does not exist or is not a valid XML file.');
+        $this->oCache->start(self::CACHE_GROUP, 'xmlfile' . $this->sPath, self::CACHE_LIFETIME);
+
+        if (!$this->aRet = $this->oCache->get()) {
+            if (!@$this->oXml->load($this->sPath)) {
+                throw new Exception(t("URL '%0%' doesn't exist or isn't a valid XML file.", $this->sPath));
+            }
+
+            foreach ($this->oXml->getElementsByTagName('link') as $oTag) {
+                $this->aRet[$oTag->getAttribute('url')] = $oTag->getAttribute('title');
+            }
+            $this->oCache->put($this->aRet);
         }
 
-        foreach ($this->_oXml->getElementsByTagName('link') as $oTag) {
-            $this->_aRet[$oTag->getAttribute('url')] = $oTag->getAttribute('title');
-        }
-
-        return $this->_aRet;
+        return $this->aRet;
     }
 }

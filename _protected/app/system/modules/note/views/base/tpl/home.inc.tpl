@@ -1,4 +1,4 @@
-<div class="box-left">
+<div class="box-left col-md-3 col-lg-3 col-xl-2">
     <div class="design-box">
         <h2>{lang 'Search Note Posts'}</h2>
         {{ SearchNoteForm::display(PH7_WIDTH_SEARCH_FORM) }}
@@ -9,7 +9,7 @@
         <ul>
             {each $author in $authors}
                 <li>
-                    <a href="{{ $design->url('note','main','author',$author->username) }}" title="{% $author->username %}" data-load="ajax">{% substr($author->username,0,20) %}</a> - ({% $author->totalAuthors %})
+                    <a href="{{ $design->url('note','main','author',$author->username) }}" title="{% $author->username %}" data-load="ajax">{% substr($author->username,0,20) %}</a> - ({% $author->totalNotes %})
                 </li>
             {/each}
         </ul>
@@ -20,7 +20,7 @@
         <ul>
             {each $category in $categories}
                 <li>
-                    <a href="{{ $design->url('note','main','category',$category->name) }}" title="{% $category->name %}" data-load="ajax">{% $category->name %}</a> - ({% $category->totalCatNotes %})
+                    <a href="{{ $design->url('note','main','category',$category->name) }}" title="{% $category->name %}" data-load="ajax">{% $category->name %}</a> - ({% $category->totalNotes %})
                 </li>
             {/each}
         </ul>
@@ -30,7 +30,11 @@
         <h2>{lang 'Top Popular Posts'}</h2>
         <ul>
             {each $views in $top_views}
-              <li><a href="{{ $design->url('note','main','read',"$views->username,$views->postId") }}" title="{% $views->pageTitle %}" data-load="ajax">{% $views->title %}</a></li>
+                <li>
+                    <a href="{{ $design->url('note','main','read',"$views->username,$views->postId") }}" title="{% $views->pageTitle %}" data-load="ajax">
+                        {% $views->title %}
+                    </a>
+                </li>
             {/each}
         </ul>
     </div>
@@ -39,13 +43,17 @@
         <h2>{lang 'Top Rated Posts'}</h2>
         <ul>
             {each $rating in $top_rating}
-              <li><a href="{{ $design->url('note','main','read',"$rating->username,$rating->postId") }}" title="{% $rating->pageTitle %}" data-load="ajax">{% $rating->title %}</a></li>
+                <li>
+                    <a href="{{ $design->url('note','main','read',"$rating->username,$rating->postId") }}" title="{% $rating->pageTitle %}" data-load="ajax">
+                        {% $rating->title %}
+                    </a>
+                </li>
             {/each}
         </ul>
     </div>
 </div>
 
-<div class="box-right">
+<div class="box-right col-md-9 col-lg-9 col-xl-9 col-xl-offset-1">
     <div class="center" id="note_block">
         {if !empty($error)}
             <p>{error}</p>
@@ -53,7 +61,11 @@
             {each $post in $posts}
                 {{ $content = escape($this->str->extract(Framework\Security\Ban\Ban::filterWord($post->content),0,400), true) }}
 
-                <h1><a href="{{ $design->url('note','main','read',"$post->username,$post->postId") }}" title="{% $post->title %}" data-load="ajax">{% escape(Framework\Security\Ban\Ban::filterWord($post->title)) %}</a></h1>
+                <h1>
+                    <a href="{{ $design->url('note','main','read',"$post->username,$post->postId") }}" title="{% $post->title %}" data-load="ajax">
+                        {% escape(Framework\Security\Ban\Ban::filterWord($post->title)) %}
+                    </a>
+                </h1>
 
                 <div class="left">{{ NoteDesign::thumb($post) }}</div>
                 {content}
@@ -68,12 +80,12 @@
                 {if $is_admin_auth AND !UserCore::isAdminLoggedAs()}
                     {{ $action = ($post->approved == 1) ? 'disapproved' : 'approved' }}
                     {{ $text = ($post->approved == 1) ? t('Disapprove') : t('Approve') }}
-                    <fieldset class="s_tMarg">
-                        <legend>{lang 'Moderation Action'}</legend>
-                        <div>
-                            {{ LinkCoreForm::display($text, 'note', 'admin', $action, array('note_id'=>$post->noteId, 'post_id'=>$post->postId, 'profile_id'=>$post->profileId)) }} &nbsp; | &nbsp; <a href="{{ $design->url(PH7_ADMIN_MOD,'user','loginuseras',$post->profileId) }}" title="{lang 'Login as this author to edit this post. Please first approve this note as an administrator to be able to edit or delete it.'}">{lang 'Login as this User'}</a>
-                        </div>
-                    </fieldset>
+                    <hr />
+                    <div>{{ LinkCoreForm::display($text, 'note', 'admin', $action, array('note_id'=>$post->noteId)) }} &nbsp; | &nbsp;
+                        <a href="{{ $design->url(PH7_ADMIN_MOD,'user','loginuseras',$post->profileId) }}" title="{lang 'Login as this author to edit/delete this post. Please first approve this note as an administrator to be able to edit or delete it.'}">
+                            {lang 'Login as this User'}
+                        </a>
+                    </div>
                 {/if}
 
                 {{ $design->likeApi() }}
@@ -90,7 +102,7 @@
         </p>
         <p>
             <a href="{{ $design->url('xml','rss','xmlrouter','note') }}">
-                <img src="{url_static_img}icon/feed.png" alt="RSS Feed" />
+                <img src="{url_static_img}icon/feed.svg" alt="RSS Feed" />
             </a>
         </p>
     </div>

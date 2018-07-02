@@ -1,7 +1,7 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Forum / Form
  */
@@ -25,24 +25,26 @@ class MsgForm
             Header::redirect();
         }
 
-        $oForumsId = (new ForumModel)->getForum();
-        $aForumsName = array();
-        foreach ($oForumsId as $oId)
-            $aForumsName[$oId->forumId] = $oId->name;
+        $aForumsName = [];
+        $oForums = (new ForumModel)->getForum();
+        foreach ($oForums as $oForum) {
+            $aForumsName[$oForum->forumId] = $oForum->name;
+        }
+        unset($oForums);
 
         $sTitlePattern = Config::getInstance()->values['module.setting']['url_title.pattern'];
 
         $oForm = new \PFBC\Form('form_msg');
-        $oForm->configure(array('action' => ''));
+        $oForm->configure(['action' => '']);
         $oForm->addElement(new \PFBC\Element\Hidden('submit_msg', 'form_msg'));
         $oForm->addElement(new \PFBC\Element\Token('msg'));
-        $oForm->addElement(new \PFBC\Element\Select(t('Forum:'), 'forum', $aForumsName, array('value' => (new Http)->get('forum_id'))));
-        $oForm->addElement(new \PFBC\Element\Textbox(t('Subject:'), 'title', array('id' => 'str_title', 'onblur' => 'CValid(this.value,this.id,2,60)', 'pattern' => $sTitlePattern, 'required' => 1, 'validation' => new \PFBC\Validation\RegExp($sTitlePattern))));
+        $oForm->addElement(new \PFBC\Element\Select(t('Forum:'), 'forum', $aForumsName, ['value' => (new Http)->get('forum_id')]));
+        $oForm->addElement(new \PFBC\Element\Textbox(t('Subject:'), 'title', ['id' => 'str_title', 'onblur' => 'CValid(this.value,this.id,2,60)', 'pattern' => $sTitlePattern, 'required' => 1, 'validation' => new \PFBC\Validation\RegExp($sTitlePattern)]));
         $oForm->addElement(new \PFBC\Element\HTMLExternal('<span class="input_error str_title"></span>'));
-        $oForm->addElement(new \PFBC\Element\CKEditor(t('Message:'), 'message', array('required' => 1, 'validation' => new \PFBC\Validation\Str(4))));
+        $oForm->addElement(new \PFBC\Element\CKEditor(t('Message:'), 'message', ['required' => 1, 'validation' => new \PFBC\Validation\Str(4)]));
 
         if (DbConfig::getSetting('isCaptchaForum')) {
-            $oForm->addElement(new \PFBC\Element\CCaptcha(t('Captcha'), 'captcha', array('id' => 'ccaptcha', 'onkeyup' => 'CValid(this.value, this.id)', 'description' => t('Enter the below code:'))));
+            $oForm->addElement(new \PFBC\Element\CCaptcha(t('Captcha'), 'captcha', ['id' => 'ccaptcha', 'onkeyup' => 'CValid(this.value, this.id)', 'description' => t('Enter the below code:')]));
             $oForm->addElement(new \PFBC\Element\HTMLExternal('<span class="input_error ccaptcha"></span>'));
         }
 

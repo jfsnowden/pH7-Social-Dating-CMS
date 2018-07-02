@@ -8,15 +8,18 @@ namespace PFBC\Element;
 
 class Submit extends \PFBC\Element
 {
-
+    /**
+     * @param string $sLabel
+     * @param array|null $aProperties
+     */
     public function __construct($sLabel, array $aProperties = null)
     {
-        $this->attributes = array('type' => 'submit', 'value' => $sLabel);
+        $this->attributes = ['type' => 'submit', 'value' => $sLabel];
 
-        if (!is_array($aProperties))
-            $aProperties = array();
+        if (!is_array($aProperties)) {
+            $aProperties = [];
+        }
 
         parent::__construct('', '', $aProperties);
     }
-
 }

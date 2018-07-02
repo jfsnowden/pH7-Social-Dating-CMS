@@ -1,7 +1,7 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Video / Controller
  */
@@ -9,7 +9,7 @@
 namespace PH7;
 
 use PH7\Framework\Analytics\Statistic;
-use PH7\Framework\Cache\Cache;
+use PH7\Framework\Http\Http;
 use PH7\Framework\Mvc\Router\Uri;
 use PH7\Framework\Navigation\Page;
 use PH7\Framework\Security\Ban\Ban;
@@ -20,11 +20,22 @@ class MainController extends Controller
     const ALBUMS_PER_PAGE = 14;
     const VIDEOS_PER_PAGE = 10;
 
+    /** @var VideoModel */
     private $oVideoModel;
+
+    /** @var Page */
     private $oPage;
+
+    /** @var string */
     private $sUsername;
+
+    /** @var int */
     private $iProfileId;
+
+    /** @var string */
     private $sTitle;
+
+    /** @var int */
     private $iTotalVideos;
 
     public function __construct()
@@ -76,7 +87,7 @@ class MainController extends Controller
 
     public function albums()
     {
-        $iProfileId = ($this->httpRequest->getExists('username')) ? $this->iProfileId : null;
+        $iProfileId = $this->httpRequest->getExists('username') ? $this->iProfileId : null;
         $this->view->total_pages = $this->oPage->getTotalPages(
             $this->oVideoModel->totalAlbums($iProfileId), self::ALBUMS_PER_PAGE
         );
@@ -84,7 +95,7 @@ class MainController extends Controller
         $oAlbums = $this->oVideoModel->album(
             $iProfileId,
             null,
-            1,
+            '1',
             $this->oPage->getFirstItem(),
             $this->oPage->getNbItemsPerPage()
         );
@@ -94,7 +105,7 @@ class MainController extends Controller
             $this->notFound(false); // Because the Ajax blocks profile, we cannot put HTTP error code 404, so the attribute is FALSE
         } else {
             // We can include HTML tags in the title since the template will erase them before displaying
-            $this->sTitle = (!empty($iProfileId)) ? t("The %0%'s albums", $this->design->getProfileLink($this->sUsername, false)) : t('Video Gallery Community');
+            $this->sTitle = !empty($iProfileId) ? t("The %0%'s albums", $this->design->getProfileLink($this->sUsername, false)) : t('Video Gallery Community');
             $this->view->page_title = $this->view->h2_title = $this->sTitle;
             $this->view->meta_description = t("%0%'s Albums | Video Albums of the Dating Social Community - %site_name%", $this->sUsername);
             $this->view->albums = $oAlbums;
@@ -130,7 +141,7 @@ class MainController extends Controller
             $this->sTitle = t('Album not found or is still in pending approval.');
             $this->notFound();
         } else {
-            $this->sTitle = t("%0%s video album", $this->design->getProfileLink($this->sUsername, false));
+            $this->sTitle = t("%0%'s video album", $this->design->getProfileLink($this->sUsername, false));
             $this->view->page_title = $this->sTitle; // We can include HTML tags in the title since the template will erase them before displaying
             $this->view->h2_title = $this->sTitle;
             $this->view->meta_description = t('Browse Videos From %0% | Video Album Social Community - %site_name%', $this->sUsername);
@@ -170,7 +181,7 @@ class MainController extends Controller
             $this->view->video = $oVideo;
 
             //Set Video Statistics
-            Statistic::setView($oVideo->videoId, 'Videos');
+            Statistic::setView($oVideo->videoId, DbTableName::VIDEO);
         }
 
         $this->output();
@@ -180,7 +191,7 @@ class MainController extends Controller
     {
         $iVideoId = $this->httpRequest->post('video_id', 'int');
 
-        CommentCoreModel::deleteRecipient($iVideoId, 'Video');
+        CommentCoreModel::deleteRecipient($iVideoId, 'video');
 
         $this->oVideoModel->deleteVideo(
             $this->session->get('member_id'),
@@ -194,10 +205,16 @@ class MainController extends Controller
             $this->httpRequest->post('video_link')
         );
 
-        $this->clearCache();
+        Video::clearCache();
 
 
-        Header::redirect(Uri::get('video', 'main', 'album', $this->session->get('member_username') . ',' . $this->httpRequest->post('album_title') . ',' . $this->httpRequest->post('album_id')),
+        Header::redirect(
+            Uri::get(
+                'video',
+                'main',
+                'album',
+                $this->session->get('member_username') . ',' . $this->httpRequest->post('album_title') . ',' . $this->httpRequest->post('album_id')
+            ),
             t('Your video has been removed.')
         );
     }
@@ -209,9 +226,16 @@ class MainController extends Controller
         $sDir = PH7_PATH_PUBLIC_DATA_SYS_MOD . 'video/file/' . $this->session->get('member_username') . PH7_DS . $this->httpRequest->post('album_id') . PH7_DS;
         $this->file->deleteDir($sDir);
 
-        $this->clearCache();
+        Video::clearCache();
 
-        Header::redirect(Uri::get('video', 'main', 'albums'), t('Your album has been removed.'));
+        Header::redirect(
+            Uri::get(
+                'video',
+                'main',
+                'albums'
+            ),
+            t('Your album has been removed.')
+        );
     }
 
     public function search()
@@ -263,13 +287,14 @@ class MainController extends Controller
     /**
      * Set a Not Found Error Message with HTTP 404 Code Status.
      *
-     * @param boolean $b404Status For the Ajax blocks profile, we can not put HTTP error code 404, so the attribute must be set to "false". Default: TRUE
+     * @param bool $b404Status For the Ajax blocks profile, we can not put HTTP error code 404, so the attribute must be set to "false". Default: TRUE
+     *
      * @return void
      */
     private function notFound($b404Status = true)
     {
         if ($b404Status === true) {
-            Framework\Http\Http::setHeadersByCode(404);
+            Http::setHeadersByCode(self::HTTP_NOT_FOUND_CODE);
         }
 
         $sErrMsg = '';
@@ -279,13 +304,5 @@ class MainController extends Controller
 
         $this->view->page_title = $this->view->h2_title = $this->sTitle;
         $this->view->error = $this->sTitle . $sErrMsg;
-    }
-
-    /**
-     * @return void
-     */
-    private function clearCache()
-    {
-        (new Cache)->start(VideoModel::CACHE_GROUP, null, null)->clear();
     }
 }

@@ -1,14 +1,14 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Blog / Controller
  */
 
 namespace PH7;
 
-use PH7\Framework\Cache\Cache;
+use PH7\Framework\Layout\Html\Design;
 use PH7\Framework\Mvc\Router\Uri;
 use PH7\Framework\Security\CSRF\Token as SecurityToken;
 use PH7\Framework\Url\Header;
@@ -40,13 +40,12 @@ class AdminController extends MainController
     {
         $iId = $this->httpRequest->post('id');
 
-        CommentCoreModel::deleteRecipient($iId, 'Blog');
+        CommentCoreModel::deleteRecipient($iId, 'blog');
         $this->oBlogModel->deleteCategory($iId);
         $this->oBlogModel->deletePost($iId);
         (new Blog)->deleteThumb($iId, 'blog', $this->file);
 
-        /* Clean BlogModel Cache  */
-        (new Cache)->start(BlogModel::CACHE_GROUP, null, null)->clear();
+        Blog::clearCache();
 
         Header::redirect(
             Uri::get('blog', 'main', 'index'),
@@ -56,15 +55,20 @@ class AdminController extends MainController
 
     public function removeThumb($iId)
     {
-        if (!(new SecurityToken)->checkUrl()) {
-            exit(Form::errorTokenMsg());
-        }
+        if ((new SecurityToken)->checkUrl()) {
+            (new Blog)->deleteThumb($iId, 'blog', $this->file);
 
-        (new Blog)->deleteThumb($iId, 'blog', $this->file);
+            $sMsg = t('The thumbnail has been deleted successfully!');
+            $sMsgType = Design::SUCCESS_TYPE;
+        } else {
+            $sMsg = Form::errorTokenMsg();
+            $sMsgType = Design::ERROR_TYPE;
+        }
 
         Header::redirect(
             Uri::get('blog', 'admin', 'edit', $iId),
-            t('The thumbnail has been deleted successfully!')
+            $sMsg,
+            $sMsgType
         );
     }
 }

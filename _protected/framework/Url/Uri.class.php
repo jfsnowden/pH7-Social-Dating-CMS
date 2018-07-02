@@ -4,7 +4,7 @@
  * @desc             URI URL methods.
  *
  * @author           Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright        (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / Framework / Url
  */
@@ -21,19 +21,13 @@ use PH7\Framework\Pattern\Singleton;
  */
 class Uri
 {
-    /**
-     * @var array $aFragments
-     */
+    /** @var array $aFragments */
     private static $aFragments;
 
-    /**
-     * @var string $sUri
-     */
+    /** @var string $sUri */
     private $sUri;
 
-    /**
-     * Import the Singleton trait.
-     */
+    /** Import the Singleton trait */
     use Singleton;
 
     /**

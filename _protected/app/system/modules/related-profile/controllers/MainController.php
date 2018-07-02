@@ -1,12 +1,12 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright      (c) 2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2017-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Related Profile / Controller
  */
-namespace PH7;
 
+namespace PH7;
 
 use PH7\Framework\Layout\Html\Meta;
 use stdClass;
@@ -15,6 +15,7 @@ class MainController extends Controller
 {
     const MAX_PROFILES = 5;
 
+    /** @var UserCoreModel */
     private $oUserModel;
 
     public function __construct()
@@ -49,7 +50,7 @@ class MainController extends Controller
      * @param stdClass $oProfile User data.
      * @param stdClass $oProfileFields Profile fields.
      *
-     * @return stdClass Related profiles.
+     * @return array|int Related profiles.
      */
     private function relatedProdiles(stdClass $oProfile, stdClass $oProfileFields)
     {

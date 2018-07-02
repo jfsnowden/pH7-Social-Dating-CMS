@@ -1,7 +1,7 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Newsletter / Config
  */
@@ -22,7 +22,9 @@ class Permission extends PermissionCore
 
         if (UserCore::auth() && $this->registry->controller === 'HomeController') {
             // Newsletter subscription is only for visitors, not for members since they can subscribe into their account
-            Header::redirect(Uri::get('user', 'main', 'index'));
+            Header::redirect(
+                Uri::get('user', 'main', 'index')
+            );
         }
 
         if (!AdminCore::auth() && $this->registry->controller === 'AdminController') {

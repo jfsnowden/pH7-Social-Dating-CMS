@@ -3,7 +3,7 @@
  * @title            Upload File Class
  *
  * @author           Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright        (c) 2013-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2013-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / Framework / File
  */
@@ -16,15 +16,18 @@ use PH7\Framework\Error\CException\PH7InvalidArgumentException;
 
 abstract class Upload
 {
-    /**
-     * @internal Protected access because these attributes are used in \PH7\Framework\Video\Video class
-     */
-    protected $sMaxSize, $iFileSize;
+    /** @var string */
+    protected $sMaxSize;
+
+    /** @var int */
+    protected $iFileSize;
 
     /**
      * Check if everything is correct.
      *
      * @return bool
+     *
+     * @throws PH7InvalidArgumentException
      */
     public function check()
     {
@@ -51,6 +54,8 @@ abstract class Upload
      * Check the file size.
      *
      * @return bool
+     *
+     * @throws PH7InvalidArgumentException
      */
     protected function checkSize()
     {

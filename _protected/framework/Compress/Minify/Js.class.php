@@ -52,7 +52,7 @@ defined('PH7') or exit('Restricted access');
  *
  * THIS FILE HAS BEEN MODIFIED BY:
  * @author Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright (c) 2011-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright (c) 2011-2018, Pierre-Henry Soria. All Rights Reserved.
  */
 class JS
 {
@@ -90,7 +90,9 @@ class JS
      *
      * @uses __construct()
      * @uses min()
+     *
      * @param string $js Javascript to be minified
+     *
      * @return string
      */
     public static function minify($js)
@@ -251,6 +253,7 @@ class JS
      *         - Unterminated string literal
      *         - Unterminated regular expression set in regex literal
      *         - Unterminated regular expression literal
+     *
      * @param int $command One of class constants:
      *      ACTION_KEEP_A      Output A. Copy B to A. Get the next B.
      *      ACTION_DELETE_A    Copy B to A. Get the next B. (Delete A).

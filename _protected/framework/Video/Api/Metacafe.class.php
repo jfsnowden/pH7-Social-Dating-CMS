@@ -3,7 +3,7 @@
  * @title            Metacafe Class
  *
  * @author           Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright        (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / Framework / Video / Api
  * @link             http://ph7cms.com
@@ -22,7 +22,7 @@ class Metacafe extends Api implements IApi
     /**
      * @param string $sUrl
      *
-     * @return string|boolean Returns the embed video URL if found, FALSE otherwise.
+     * @return string|bool Returns the embed video URL if found, FALSE otherwise.
      */
     public function getVideo($sUrl)
     {
@@ -32,7 +32,7 @@ class Metacafe extends Api implements IApi
     /**
      * @param string $sUrl
      *
-     * @return Metacafe|boolean
+     * @return Metacafe|bool
      */
     public function getInfo($sUrl)
     {
@@ -53,7 +53,7 @@ class Metacafe extends Api implements IApi
      *
      * @see Api::getInfo();
      *
-     * @return string|boolean The title with escape function if found otherwise returns false.
+     * @return string|bool The title with escape function if found otherwise returns false.
      */
     public function getTitle()
     {
@@ -71,7 +71,7 @@ class Metacafe extends Api implements IApi
      *
      * @see Api::getInfo();
      *
-     * @return string|boolean The description with escape function if found otherwise returns false.
+     * @return string|bool The description with escape function if found otherwise returns false.
      */
     public function getDescription()
     {
@@ -89,7 +89,7 @@ class Metacafe extends Api implements IApi
      *
      * @see Metacafe::getInfo();
      *
-     * @return integer|boolean The video duration if found, FALSE otherwise.
+     * @return int|bool The video duration if found, FALSE otherwise.
      */
     public function getDuration()
     {
@@ -105,8 +105,8 @@ class Metacafe extends Api implements IApi
     /**
      * @param string $sUrl
      * @param string $sMedia
-     * @param integer $iWidth
-     * @param integer $iHeight
+     * @param int $iWidth
+     * @param int $iHeight
      *
      * @return string
      */
@@ -115,19 +115,19 @@ class Metacafe extends Api implements IApi
         $sIdVideo = $this->getVideoId($sUrl);
         $sVideoUrl = $this->getEmbedUrl($sUrl);
 
-        if ($sMedia == 'preview') {
-            return 'http://s' . mt_rand(1,4) . '.mcstatic.com/thumb/' . $sIdVideo . '.jpg';
+        if ($sMedia === 'preview') {
+            return 'http://s' . mt_rand(1, 4) . '.mcstatic.com/thumb/' . $sIdVideo . '.jpg';
         }
 
-        $sParam = ($this->bAutoplay) ? 'autoPlay=yes' : 'autoPlay=no';
+        $sParam = $this->bAutoplay ? 'autoPlay=yes' : 'autoPlay=no';
 
-        return '<embed flashVars="playerVars=showStats=no|' . $sParam . '|" src="' . $sVideoUrl . '" width="' . $iWidth . '" height="' . $iHeight . '" wmode="transparent" allowFullScreen="true" allowScriptAccess="always" name="Metacafe_'. $sIdVideo . '" pluginspage="http://www.macromedia.com/go/getflashplayer" type="application/x-shockwave-flash"></embed>';
+        return '<embed flashVars="playerVars=showStats=no|' . $sParam . '|" src="' . $sVideoUrl . '" width="' . $iWidth . '" height="' . $iHeight . '" wmode="transparent" allowFullScreen="true" allowScriptAccess="always" name="Metacafe_' . $sIdVideo . '" pluginspage="http://www.macromedia.com/go/getflashplayer" type="application/x-shockwave-flash"></embed>';
     }
 
     /**
      * @param string $sUrl
      *
-     * @return integer|boolean Returns the ID of the video if it was found, FALSE otherwise.
+     * @return int|bool Returns the ID of the video if it was found, FALSE otherwise.
      */
     public function getVideoId($sUrl)
     {
@@ -141,7 +141,7 @@ class Metacafe extends Api implements IApi
      *
      * @param string $sUrl
      *
-     * @return boolean|string
+     * @return bool|string
      */
     public function getEmbedUrl($sUrl)
     {

@@ -15,8 +15,8 @@
  * ----------------- Modified by Pierre-Henry SORIA ----------------- *
  *
  * @author          Pierre-Henry SORIA <ph7software@gmail.com>
- * @copyright       (c) 2011-2017, Pierre-Henry SORIA, All Rights Reserved.
- * @version         Last update 04/21/2017
+ * @copyright       (c) 2011-2018, Pierre-Henry Soria, All Rights Reserved.
+ * @version         Last update 04/19/2018
  * @package         pH7CMS
  */
 
@@ -24,6 +24,7 @@ namespace PH7\Framework\Geo\Map;
 
 defined('PH7') or exit('Restricted access');
 
+use PH7\Framework\Compress\Compress;
 use PH7\Framework\Config\Config;
 
 /**
@@ -33,6 +34,9 @@ use PH7\Framework\Config\Config;
  */
 class Api
 {
+    const API_KEY_MIN_LENGTH = 10;
+    const MARKER_ICON_PATH = PH7_URL_STATIC . PH7_IMG . 'icon/map-marker.svg';
+
     /** GoogleMap ID for the HTML DIV and identifier for all the methods (to have several gmaps) **/
     protected $googleMapId = 'googlemapapi';
 
@@ -94,7 +98,7 @@ class Api
     protected $useClusterer = false;
     protected $gridSize = 100;
     protected $maxZoom = 9;
-    protected $clustererLibrarypath = 'https://google-maps-utility-library-v3.googlecode.com/svn/tags/markerclusterer/1.0/src/markerclusterer_packed.js';
+    protected $clustererLibrarypath = 'https://cdnjs.cloudflare.com/ajax/libs/js-marker-clusterer/1.0.0/markerclusterer.js';
 
     /** Enable automatic center/zoom **/
     protected $enableAutomaticCenterZoom = false;
@@ -156,9 +160,7 @@ class Api
         $this->useClusterer = $useClusterer;
         $this->gridSize = $gridSize;
         $this->maxZoom = $maxZoom;
-        ($clustererLibraryPath == '')
-            ? $this->clustererLibraryPath = 'https://google-maps-utility-library-v3.googlecode.com/svn/tags/markerclusterer/1.0/src/markerclusterer_packed.js'
-            : $this->clustererLibraryPath = $clustererLibraryPath;
+        $this->clustererLibraryPath = $clustererLibraryPath == '' ? 'https://google-maps-utility-library-v3.googlecode.com/svn/tags/markerclusterer/1.0/src/markerclusterer_packed.js' : $clustererLibraryPath;
     }
 
     /**
@@ -166,12 +168,13 @@ class Api
      * HYBRID, TERRAIN, ROADMAP, SATELLITE
      *
      * @param string $type
+     *
      * @return void
      */
     public function setMapType($type)
     {
-        $mapsType = array('ROADMAP', 'HYBRID', 'TERRAIN', 'SATELLITE');
-        if (!in_array(strtoupper($type), $mapsType)) {
+        $mapsType = ['ROADMAP', 'HYBRID', 'TERRAIN', 'SATELLITE'];
+        if (!in_array(strtoupper($type), $mapsType, true)) {
             $this->mapType = $mapsType[0];
         } else {
             $this->mapType = strtoupper($type);
@@ -286,7 +289,7 @@ class Api
 
     /**
      * Set the Google Maps key
-     * Ref: http://googlegeodevelopers.blogspot.ie/2016/06/building-for-scale-updates-to-google.html
+     * Ref: https://maps-apis.googleblog.com/2016/06/building-for-scale-updates-to-google.html
      *
      * @param string $key
      *
@@ -294,7 +297,7 @@ class Api
      */
     public function setKey($key)
     {
-        $this->key = $key;
+        $this->key = trim($key);
     }
 
     /**
@@ -401,7 +404,7 @@ class Api
      *
      * @return void
      */
-    public function setincludeJs($includeJs)
+    public function setIncludeJs($includeJs)
     {
         $this->includeJs = $includeJs;
     }
@@ -413,8 +416,9 @@ class Api
      */
     public function getMap()
     {
-        if ($this->bCompressor)
-            $this->content = (new \PH7\Framework\Compress\Compress)->parseJs($this->content);
+        if ($this->bCompressor) {
+            $this->content = (new Compress)->parseJs($this->content);
+        }
 
         return $this->content;
     }
@@ -449,7 +453,7 @@ class Api
      */
     public function geocoding($address)
     {
-        $url = 'https://maps.googleapis.com/maps/api/geocode/json?address=' . urlencode($address) . '&amp;sensor=true&amp;key=' . $this->key;
+        $url = 'https://maps.googleapis.com/maps/api/geocode/json?address=' . urlencode($address) . '&amp;key=' . $this->key;
 
         if (function_exists('curl_init')) {
             $data = $this->getContent($url);
@@ -489,8 +493,8 @@ class Api
      */
     public function addMarkerByCoords($lat, $lng, $title, $html = '', $category = '', $icon = '', $id = '')
     {
-        if ($icon == '') {
-            $icon = 'https://maps.gstatic.com/mapfiles/markers2/marker.png';
+        if ($icon === '') {
+            $icon = self::MARKER_ICON_PATH;
         }
 
         // Save the lat/lon to enable the automatic center/zoom
@@ -507,7 +511,7 @@ class Api
     /**
      * Add marker by his address
      *
-     * @param string $address  an ddress
+     * @param string $address  an address
      * @param string $title    title
      * @param string $content  html code display in the info window
      * @param string $category marker category
@@ -528,7 +532,7 @@ class Api
     /**
      * Add marker by an array of coord
      *
-     * @param string $coordtab an array of lat,lng,content
+     * @param array $coordtab an array of lat,lng,content
      * @param string $category marker category
      * @param string $icon     an icon url
      *
@@ -544,7 +548,7 @@ class Api
     /**
      * Add marker by an array of address
      *
-     * @param string $coordtab an array of address
+     * @param array $coordtab an array of address
      * @param string $category marker category
      * @param string $icon     an icon url
      *
@@ -605,19 +609,19 @@ class Api
 
         if ($this->includeJs === true) {
             // Google map JS
-            $this->content .= '<script src="https://maps.googleapis.com/maps/api/js?v=3.exp&amp;sensor=false&amp;key=' .
+            $this->content .= '<script src="https://maps.googleapis.com/maps/api/js?key=' .
                 $this->key . '&amp;language=' . $this->lang . '">';
             $this->content .= '</script>' . "\n";
 
             // Clusterer JS
-            if ($this->useClusterer == true) {
-                $this->content .= '<script src="' . $this->clustererLibraryPath . '" type="text/javascript"></script>' . "\n";
+            if ($this->useClusterer) {
+                $this->content .= '<script src="' . $this->clustererLibraryPath . '"></script>' . "\n";
             }
         }
 
         $this->content .= '<script>' . "\n";
 
-        if (empty($this->key) || strlen($this->key) <= 10) {
+        if ($this->isApiKeyNotSet()) {
             $this->content .= 'document.write("' . t('You need to get a Google Maps API key to get it working. Please go to your pH7CMS Admin Panel -> Settings -> General -> API -> Google Maps API Key') . '".toUpperCase());' . "\n";
         }
 
@@ -667,7 +671,7 @@ class Api
         $this->content .= "\t\t" . '});' . "\n";
 
         // Display direction inputs in the info window
-        if ($this->displayDirectionFields == true) {
+        if ($this->displayDirectionFields) {
             $this->content .= "\t\t" . 'content += \'<div style="clear:both;height:20px;"></div>\';' . "\n";
             $this->content .= "\t\t" . 'id_name = \'marker_\'+gmarkers.length;' . "\n";
             $this->content .= "\t\t" . 'content += \'<input type="text" id="\'+id_name+\'"/>\';' . "\n";
@@ -683,7 +687,7 @@ class Api
         $this->content .= "\t\t\t" . 'infowindow.open(currentmap,marker);' . "\n";
 
         // Enable the zoom when you click on a marker
-        if ($this->enableWindowZoom == true) {
+        if ($this->enableWindowZoom) {
             $this->content .= "\t\t\t" . 'currentmap.setCenter(new google.maps.LatLng(latlng.lat(),latlng.lng()),' . $this->infoWindowZoom . ');' . "\n";
         }
 
@@ -693,7 +697,7 @@ class Api
         $this->content .= "\t\t" . 'gmarkers.push(marker);' . "\n";
 
         // Hide marker by default
-        if ($this->defaultHideMarker == true) {
+        if ($this->defaultHideMarker) {
             $this->content .= "\t\t" . 'marker.setVisible(false);' . "\n";
         }
         $this->content .= "\t" . '}' . "\n";
@@ -808,7 +812,7 @@ class Api
     {
         $this->init();
 
-        //Fonction init()
+        // init() function
         $this->content .= "\t" . 'function initialize' . $this->googleMapId . '() {' . "\n";
         $this->content .= "\t" . 'var myLatlng = new google.maps.LatLng(48.8792,2.34778);' . "\n";
         $this->content .= "\t" . 'var myOptions = {' . "\n";
@@ -817,11 +821,11 @@ class Api
         $this->content .= "\t\t" . 'mapTypeId: google.maps.MapTypeId.' . $this->mapType . "\n";
         $this->content .= "\t" . '}' . "\n";
 
-        //Goole map Div Id
+        // Google map Div ID
         $this->content .= "\t" . 'map' . $this->googleMapId . ' = new google.maps.Map(document.getElementById("' . $this->googleMapId . '"), myOptions);' . "\n";
 
         // Center
-        if ($this->enableAutomaticCenterZoom == true) {
+        if ($this->enableAutomaticCenterZoom) {
             $lenLng = $this->maxLng - $this->minLng;
             $lenLat = $this->maxLat - $this->minLat;
             $this->minLng -= $lenLng * $this->coordCoef;
@@ -856,21 +860,27 @@ class Api
         $this->content .= "\t" . 'directions.setMap(map' . $this->googleMapId . ');' . "\n";
         $this->content .= "\t" . 'directions.setPanel(document.getElementById("' . $this->googleMapDirectionId . '"))' . "\n";
 
-        // add all the markers
+        // Add all the markers
         $this->content .= $this->contentMarker;
 
-        // Clusterer JS
-        if ($this->useClusterer == true) {
+        // JS Clusterer
+        if ($this->useClusterer) {
             $this->content .= "\t" . 'var markerCluster = new MarkerClusterer(map' . $this->googleMapId . ', gmarkers,{gridSize: ' . $this->gridSize . ', maxZoom: ' . $this->maxZoom . '});' . "\n";
         }
 
         $this->content .= '}' . "\n";
 
-        // Chargement de la map a la fin du HTML
-        //$this->content.= "\t".'window.onload=initialize;'."\n";
+        // Loading the map at the end of the HTML
         $this->content .= "\t" . 'addLoadEvent(initialize' . $this->googleMapId . ');' . "\n";
 
-        //Fermeture du javascript
         $this->content .= '</script>' . "\n";
+    }
+
+    /**
+     * @return bool
+     */
+    public function isApiKeyNotSet()
+    {
+        return empty($this->key) || strlen($this->key) <= self::API_KEY_MIN_LENGTH;
     }
 }

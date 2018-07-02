@@ -3,7 +3,7 @@
  * @title            Model Class
  *
  * @author           Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright        (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / Framework / Mvc / Model / Engine
  */
@@ -17,10 +17,17 @@ use PH7\Framework\File\File;
 
 abstract class Model extends Entity
 {
+    const DB_PREFIX_FLAG = '[DB_PREFIX]';
     const SQL_FILE_EXT = '.sql';
 
-    protected $orm, $cache;
-    private $_sContents;
+    /** @var Record */
+    protected $orm;
+
+    /** @var Cache */
+    protected $cache;
+
+    /** @var string */
+    private $sContents;
 
     public function __construct()
     {
@@ -33,13 +40,14 @@ abstract class Model extends Entity
      * @param string $sPath Path to SQL file.
      * @param array $aParams
      *
-     * @return boolean Returns TRUE on success or FALSE on failure.
+     * @return bool Returns TRUE on success or FALSE on failure.
      */
     public function exec($sFile, $sPath, array $aParams = null)
     {
-        $rStmt = Db::getInstance()->prepare( $this->getQuery($sFile, $sPath) );
+        $rStmt = Db::getInstance()->prepare($this->getQuery($sFile, $sPath));
         $bRet = $rStmt->execute($aParams);
         Db::free($rStmt);
+
         return $bRet;
     }
 
@@ -54,10 +62,10 @@ abstract class Model extends Entity
     public function getQuery($sFile, $sPath)
     {
         $sFullPath = $sPath . $sFile . static::SQL_FILE_EXT;
-        $this->_sContents = (new File)->getFile($sFullPath);
-        $this->_parseVar();
+        $this->sContents = (new File)->getFile($sFullPath);
+        $this->parseVar();
 
-        return $this->_sContents;
+        return $this->sContents;
     }
 
     /**
@@ -65,8 +73,8 @@ abstract class Model extends Entity
      *
      * @return void
      */
-    private function _parseVar()
+    private function parseVar()
     {
-        $this->_sContents = str_replace('[DB_PREFIX]', Db::prefix(), $this->_sContents);
+        $this->sContents = str_replace(self::DB_PREFIX_FLAG, Db::prefix(), $this->sContents);
     }
 }

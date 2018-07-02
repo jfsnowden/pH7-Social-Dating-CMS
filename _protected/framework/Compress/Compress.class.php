@@ -5,75 +5,85 @@
  *
  * @author           Pierre-Henry Soria <ph7software@gmail.com>
  * @author           Some pieces of code are inspired by Schepp Christian Schaefer's script (CSS JS booster).
- * @copyright        (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / Framework / Compress
- * @version          1.0
  */
 
 namespace PH7\Framework\Compress;
 
 defined('PH7') or exit('Restricted access');
 
+use PH7\Framework\Compress\ValueObject\FileType;
 use PH7\Framework\Config\Config;
+use PH7\Framework\Url\Url;
 
 class Compress
 {
-    const MAX_LIMIT_GOOGLE_CLOSURE = 200000; // 200KB
+    const COMPRESSION_LEVEL = 6;
+    const COMPRESSION_BYTE_BUFFER_SIZE = 2048;
+    const GOOGLE_CLOSURE_HOST = 'closure-compiler.appspot.com';
+    const GOOGLE_CLOSURE_PARAMS = 'js_code=%s&compilation_level=SIMPLE_OPTIMIZATIONS&output_format=text&output_info=compiled_code';
+    const GOOGLE_CLOSURE_PORT = 80;
+
+    const MAX_LIMIT_SIZE_GOOGLE_CLOSURE = 200000; // 200KB
 
     /**
      * For Stylesheet and JavaScript.
      *
      * The YUI Compressor path where it is stored.
      *
-     * @var string $_sYuiCompressorPath
+     * @var string $sYuiCompressorPath
      */
-    private $_sYuiCompressorPath;
+    private $sYuiCompressorPath;
 
     /**
      * For JavaScript Only.
      *
      * The Google Closure Compiler path where it is stored.
      *
-     * @var string $_sClosureCompilerPath
+     * @var string $sClosureCompilerPath
      */
-    private $_sClosureCompilerPath;
+    private $sClosureCompilerPath;
 
     /**
      * Temporary File Path.
      *
-     * @var string $_sTmpFilePath
+     * @var string $sTmpFilePath
      */
-    private $_sTmpFilePath;
+    private $sTmpFilePath;
 
     /**
      * Enable or Disabled Google Closure Compiler Service (https://closure-compiler.appspot.com )for the JS files.
      * If you use for too many files at the same time, Google might break it.
      *
-     * @var boolean $_bIsGoogleClosure
+     * @var boolean $bIsGoogleClosure
      */
-    private $_bIsGoogleClosure;
+    private $bIsGoogleClosure;
 
     /**
      * Enable Java Engine Compiler.
      *
-     * @var boolean $_bJavaCompiler
+     * @var boolean $bJavaCompiler
      */
-    private $_bJavaCompiler;
+    private $bJavaCompiler;
 
     public function __construct()
     {
-        $this->_sYuiCompressorPath = realpath(__DIR__) . '/Compiler/YUICompressor-2.4.7.jar';
-        $this->_sClosureCompilerPath = realpath(__DIR__) . '/Compiler/ClosureCompiler.jar';
-        $this->_sTmpFilePath = PH7_PATH_TMP . PH7_DS . uniqid(mt_rand(), true) . '.tmp';
-        $this->_bJavaCompiler = (bool)Config::getInstance()->values['cache']['enable.static.minify_java_compiler'];
-        $this->_bIsGoogleClosure = (bool)Config::getInstance()->values['cache']['enable.js.closure_compiler_service'];
+        $sUniqIdPrefix = (string)mt_rand();
+
+        $this->sYuiCompressorPath = realpath(__DIR__) . '/Compiler/YUICompressor-2.4.7.jar';
+        $this->sClosureCompilerPath = realpath(__DIR__) . '/Compiler/ClosureCompiler.jar';
+        $this->sTmpFilePath = PH7_PATH_TMP . PH7_DS . uniqid($sUniqIdPrefix, true) . '.tmp';
+        $this->bJavaCompiler = (bool)Config::getInstance()->values['cache']['enable.static.minify_java_compiler'];
+        $this->bIsGoogleClosure = (bool)Config::getInstance()->values['cache']['enable.js.closure_compiler_service'];
     }
 
     public function parsePhp($sPhp)
     {
         $sPhp = preg_replace('#/\*.*+\*#', '', $sPhp); # Removing PHP comments
         $sPhp = $this->parseHtml($sPhp);
+
         return $sPhp;
     }
 
@@ -86,18 +96,22 @@ class Compress
         $sHtml = preg_replace('/>[\s]+</', '> <', $sHtml); # Remove new lines, spaces, tabs
         $sHtml = preg_replace('/[\s]+/', ' ', $sHtml); # Remove new lines, spaces, tabs
         $sHtml = preg_replace('#(?ix)(?>[^\S ]\s*|\s{2,})(?=(?:(?:[^<]++|<(?!/?(?:textarea|pre)\b))*+)(?:<(?>textarea|pre)\b|\z))#', '', $sHtml);
-        if (!empty($aPre[0]))
-            foreach ($aPre[0] as $sTag)
+        if (!empty($aPre[0])) {
+            foreach ($aPre[0] as $sTag) {
                 $sHtml = preg_replace('!#pre#!', $sTag, $sHtml, 1);# Putting back pre|code tags
+            }
+        }
+
         return $sHtml;
     }
 
     public function parseCss($sContent)
     {
-        if ($this->_bJavaCompiler) {
-            file_put_contents($this->_sTmpFilePath, $sContent);
-            $sCssMinified = exec("java -jar $this->_sYuiCompressorPath $this->_sTmpFilePath --type css --charset utf-8");
-            unlink($this->_sTmpFilePath);
+        if ($this->bJavaCompiler) {
+            file_put_contents($this->sTmpFilePath, $sContent);
+            $oFileType = new FileType(FileType::CSS_TYPE);
+            $sCssMinified = $this->executeYuiCompressor($oFileType);
+            unlink($this->sTmpFilePath);
         } else {
             // Backup any values within single or double quotes
             preg_match_all('/(\'[^\']*?\'|"[^"]*?")/ims', $sContent, $aHit, PREG_PATTERN_ORDER);
@@ -123,10 +137,10 @@ class Compress
             $sContent = preg_replace('/[\r\n]+/ims', "\n", $sContent);
             // Constrain multiple whitespaces
             $sContent = preg_replace('/\p{Zs}+/ims', ' ', $sContent);
-            // remove comments
+            // Remove comments
             $sContent = preg_replace("!/\*[^*]*\*+([^/][^*]*\*+)*/!", "", $sContent);
-            // remove tabs, spaces, newlines, etc. */
-            $aArr = array("\r\n", "\r", "\n", "\t", "  ", "    ", "    ");
+            // Remove tabs, spaces, newlines, etc. */
+            $aArr = ["\r\n", "\r", "\n", "\t", "  ", "    ", "    "];
             $sContent = str_replace($aArr, "", $sContent);
             // Restore backupped values within single or double quotes
 
@@ -145,58 +159,104 @@ class Compress
 
     public function parseJs($sContent)
     {
-        if ($this->_bJavaCompiler) {
-            file_put_contents($this->_sTmpFilePath, $sContent);
-            $sJsMinified = exec("java -jar $this->_sYuiCompressorPath $this->_sTmpFilePath --type js --charset utf-8");
-            unlink($this->_sTmpFilePath);
+        if ($this->bJavaCompiler) {
+            file_put_contents($this->sTmpFilePath, $sContent);
+            $oFileType = new FileType(FileType::JS_TYPE);
+            $sJsMinified = $this->executeYuiCompressor($oFileType);
+            unlink($this->sTmpFilePath);
         } else {
+            // URL-encoded file contents
+            $sContentEncoded = Url::encode($sContent);
+
             // If we can open connection to Google Closure
             // Google Closure has a max limit of 200KB POST size, and will break JS with eval-command
-
-            // URL-encoded file contents
-            $sContentEncoded = \PH7\Framework\Url\Url::encode($sContent);
-            // Closure Host
-            $sHost = 'closure-compiler.appspot.com';
-
-            if (
-                $this->_bIsGoogleClosure && strlen($sContentEncoded) < self::MAX_LIMIT_GOOGLE_CLOSURE &&
-                preg_match('/[^a-z]eval\(/ism', $sContent) == 0 && $rSocket = @pfsockopen($sHost, 80)
-            ) {
+            if ($rSocket = $this->googleClosureEligible($sContent, $sContentEncoded)) {
                 // Working vars
                 $sJsMinified = '';
                 $sServiceUri = '/compile';
-                $sVars = 'js_code=' . $sContentEncoded . '&compilation_level=SIMPLE_OPTIMIZATIONS&output_format=text&output_info=compiled_code';
+                $sVars = sprintf(self::GOOGLE_CLOSURE_PARAMS, $sContentEncoded);
 
                 // Compose HTTP request header
-                $sHeader = "Host: $sHost\r\n";
+                $sHeader = 'Host: ' . self::GOOGLE_CLOSURE_HOST . "\r\n";
                 $sHeader .= "User-Agent: PHP Script\r\n";
                 $sHeader .= "Content-Type: application/x-www-form-urlencoded\r\n";
-                $sHeader .= "Content-Length: " . strlen($sVars) . "\r\n";
+                $sHeader .= 'Content-Length: ' . strlen($sVars) . "\r\n";
                 $sHeader .= "Connection: close\r\n\r\n";
 
-                fputs($rSocket, "POST $sServiceUri  HTTP/1.0\r\n");
-                fputs($rSocket, $sHeader . $sVars);
-                while (!feof($rSocket)) $sJsMinified .= fgets($rSocket);
+                fwrite($rSocket, "POST $sServiceUri  HTTP/1.0\r\n");
+                fwrite($rSocket, $sHeader . $sVars);
+                while (!feof($rSocket)) {
+                    $sJsMinified .= fgets($rSocket);
+                }
                 fclose($rSocket);
                 $sJsMinified = preg_replace('/^HTTP.+[\r\n]{2}/ims', '', $sJsMinified);
-            } // Switching over to Douglas Crockford's JSMin (which in turn breaks IE's conditional compilation)
-            else {
-                // remove comments
+            } else {
+                // Remove comments
                 //$sContent = preg_replace("/((?:\/\*(?:[^*]|(?:\*+[^*\/]))*\*+\/)|(?:\/\/.*))/", "", $sContent);
 
-                // remove tabs, spaces, etc. */
-                $sContent = str_replace(array("\r", "\t", '  ', '    ', '     '), '', $sContent);
+                // Remove tabs, spaces, etc. */
+                $sContent = str_replace(["\r", "\t", '  ', '    ', '     '], '', $sContent);
 
-                // remove other spaces before/after ) */
-                $sContent = preg_replace(array('(( )+\))', '(\)( )+)'), ')', $sContent);
+                // Remove other spaces before/after ) */
+                $sContent = preg_replace(['(( )+\))', '(\)( )+)'], ')', $sContent);
 
                 /**
-                 * Inclusion of JSMin
+                 * Inclusion of Douglas Crockford's JSMin
                  */
                 $sJsMinified = Minify\Js::minify($sContent);
             }
         }
 
         return $sJsMinified;
+    }
+
+    /**
+     * zlib-compressed output.
+     *
+     * These "zlib output compression" compress the pages.
+     * It save your bandwidth and gives faster download of the pages.
+     * WARNING: It can consume high CPU resources on the server.
+     * So it might be wise not to use this method if the server isn't so powerful.
+     *
+     * @return void
+     */
+    public static function setZlipCompression()
+    {
+        ini_set('zlib.output_compression', self::COMPRESSION_LEVEL);
+        ini_set('zlib.output_compression_level', self::COMPRESSION_BYTE_BUFFER_SIZE);
+    }
+
+    /**
+     * @param string $sContent
+     * @param string $sContentEncoded
+     *
+     * @return resource|bool Returns the resource if eligible, FALSE otherwise.
+     */
+    private function googleClosureEligible($sContent, $sContentEncoded)
+    {
+        if ($this->bIsGoogleClosure && strlen($sContentEncoded) < static::MAX_LIMIT_SIZE_GOOGLE_CLOSURE &&
+            preg_match('/[^a-z]eval\(/ism', $sContent) == 0
+        ) {
+            return @pfsockopen(self::GOOGLE_CLOSURE_HOST, self::GOOGLE_CLOSURE_PORT);
+        }
+
+        return false;
+    }
+
+    /**
+     * @param FileType $oType
+     *
+     * @return void
+     */
+    private function executeYuiCompressor(FileType $oType)
+    {
+        exec(
+            sprintf(
+                'java -jar %s %s --type %s --charset utf-8',
+                $this->sYuiCompressorPath,
+                $this->sTmpFilePath,
+                $oType->getValue()
+            )
+        );
     }
 }

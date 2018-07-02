@@ -3,7 +3,7 @@
  * @title          Main Controller
  *
  * @author         Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Payment / Controller
  * @version        1.4
@@ -12,11 +12,14 @@
 namespace PH7;
 
 use Braintree_Transaction;
+use DateInterval;
+use DateTime;
 use PH7\Framework\Cache\Cache;
 use PH7\Framework\File\File;
 use PH7\Framework\Mail\Mail;
 use PH7\Framework\Mvc\Model\DbConfig;
 use PH7\Framework\Payment\Gateway\Api\Api as ApiInterface;
+use stdClass;
 
 class MainController extends Controller
 {
@@ -25,6 +28,15 @@ class MainController extends Controller
     const BRAINTREE_GATEWAY_NAME = 'braintree';
     const TWO_CHECKOUT_GATEWAY_NAME = '2co';
     const CCBILL_GATEWAY_NAME = 'ccbill';
+
+    const REDIRECTION_DELAY = 4; // In seconds
+
+    const PAYMENT_GATEWAYS = [
+        PayPal::class,
+        Braintree::class,
+        Stripe::class,
+        TwoCO::class
+    ];
 
     /** @var AffiliateCoreModel */
     protected $oUserModel;
@@ -36,7 +48,7 @@ class MainController extends Controller
     protected $sTitle;
 
     /** @var int */
-    protected $iProfileId;
+    private $iProfileId;
 
     /** @var bool Payment status. Default is failure (FALSE) */
     private $bStatus = false;
@@ -63,7 +75,7 @@ class MainController extends Controller
         if (empty($oMembershipData)) {
             $this->displayPageNotFound(t('No membership found!'));
         } else {
-            $this->view->page_title = $this->view->h2_title = t('Memberships List');
+            $this->view->page_title = $this->view->h1_title = t('Memberships Plans');
             $this->view->memberships = $oMembershipData;
             $this->output();
         }
@@ -76,7 +88,7 @@ class MainController extends Controller
      */
     public function pay($iMembershipId = null)
     {
-        $iMembershipId = (int) $iMembershipId;
+        $iMembershipId = (int)$iMembershipId;
 
         $oMembershipData = $this->oPayModel->getMemberships($iMembershipId);
 
@@ -107,12 +119,12 @@ class MainController extends Controller
                 $oPayPal = new PayPal($this->config->values['module.setting']['sandbox.enabled']);
                 if ($oPayPal->valid() && $this->httpRequest->postExists('custom')) {
                     $aData = explode('|', base64_decode($this->httpRequest->post('custom')));
-                    $iItemNumber = (int) $aData[0];
+                    $iItemNumber = (int)$aData[0];
                     if ($this->oUserModel->updateMembership(
                         $iItemNumber,
                         $this->iProfileId,
-                        $this->dateTime->get()->dateTime('Y-m-d H:i:s'))
-                    ) {
+                        $this->dateTime->get()->dateTime(UserCoreModel::DATETIME_FORMAT)
+                    )) {
                         $this->bStatus = true; // Status is OK
                         $this->updateUserGroupId($iItemNumber);
                         // PayPal will call automatically the "notification()" method thanks its IPN feature and "notify_url" form attribute.
@@ -132,27 +144,28 @@ class MainController extends Controller
                                 'amount' => Stripe::getAmount($sAmount),
                                 'currency' => $this->config->values['module.setting']['currency'],
                                 'source' => $this->httpRequest->post('stripeToken'),
-                                'description'    => 'Membership charged for ' . $this->httpRequest->post('stripeEmail')
+                                'description' => t('Membership charged for %0%', $this->httpRequest->post('stripeEmail'))
                             ]
                         );
 
-                        $iItemNumber = $this->httpRequest->post('item_number');
-                        if ($this->oUserModel->updateMembership(
-                            $iItemNumber,
-                            $this->iProfileId,
-                            $this->dateTime->get()->dateTime('Y-m-d H:i:s'))
-                        ) {
-                            $this->bStatus = true; // Status is OK
-                            $this->updateUserGroupId($iItemNumber);
-                            $this->notification(Stripe::class, $iItemNumber);
+                        // Make sure the item has been paid
+                        if ($oCharge->paid === true) {
+                            $iItemNumber = $this->httpRequest->post('item_number');
+                            if ($this->oUserModel->updateMembership(
+                                $iItemNumber,
+                                $this->iProfileId,
+                                $this->dateTime->get()->dateTime(UserCoreModel::DATETIME_FORMAT)
+                            )) {
+                                $this->bStatus = true; // Status is OK
+                                $this->updateUserGroupId($iItemNumber);
+                                $this->notification(Stripe::class, $iItemNumber);
+                            }
                         }
-                    }
-                    catch (\Stripe\Error\Card $oE) {
+                    } catch (\Stripe\Error\Card $oE) {
                         // The card has been declined
                         // Do nothing here as "$this->bStatus" is by default FALSE and so it will display "Error occurred" msg later
-                    }
-                    catch (\Stripe\Error\Base $oE) {
-                        $this->design->setMessage( $this->str->escape($oE->getMessage(), true) );
+                    } catch (\Stripe\Error\Base $oE) {
+                        $this->design->setMessage($this->str->escape($oE->getMessage(), true));
                     }
                 }
             } break;
@@ -164,7 +177,7 @@ class MainController extends Controller
                     $oResult = Braintree_Transaction::sale([
                         'amount' => $this->httpRequest->post('amount'),
                         'paymentMethodNonce' => $bNonce,
-                        'options' => [ 'submitForSettlement' => true ]
+                        'options' => ['submitForSettlement' => true]
                     ]);
 
                     if ($oResult->success) {
@@ -172,15 +185,15 @@ class MainController extends Controller
                         if ($this->oUserModel->updateMembership(
                             $iItemNumber,
                             $this->iProfileId,
-                            $this->dateTime->get()->dateTime('Y-m-d H:i:s'))
-                        ) {
+                            $this->dateTime->get()->dateTime(UserCoreModel::DATETIME_FORMAT)
+                        )) {
                             $this->bStatus = true; // Status is OK
                             $this->updateUserGroupId($iItemNumber);
                             $this->notification(Braintree::class, $iItemNumber);
                         }
                     } elseif ($oResult->transaction) {
                         $sErrMsg = t('Error processing transaction: %0%', $oResult->transaction->processorResponseText);
-                        $this->design->setMessage( $this->str->escape($sErrMsg, true) );
+                        $this->design->setMessage($this->str->escape($sErrMsg, true));
                     }
                 }
             } break;
@@ -194,12 +207,10 @@ class MainController extends Controller
                 if ($o2CO->valid($sVendorId, $sSecretWord)
                     && $this->httpRequest->postExists('sale_id')
                 ) {
-                    if (
-                        $this->oUserModel->updateMembership(
-                            $iItemNumber,
-                            $this->iProfileId,
-                            $this->dateTime->get()
-                                ->dateTime('Y-m-d H:i:s')
+                    if ($this->oUserModel->updateMembership(
+                        $iItemNumber,
+                        $this->iProfileId,
+                        $this->dateTime->get()->dateTime(UserCoreModel::DATETIME_FORMAT)
                         )
                     ) {
                         $this->bStatus = true; // Status is OK
@@ -220,7 +231,7 @@ class MainController extends Controller
         }
 
         // Set the page titles
-        $this->sTitle = ($this->bStatus) ? t('Thank you!') : t('Error occurred!');
+        $this->sTitle = $this->bStatus ? t('Thank you!') : t('Error occurred!');
         $this->view->page_title = $this->view->h2_title = $this->sTitle;
 
         if ($this->bStatus) {
@@ -235,12 +246,11 @@ class MainController extends Controller
             $this->setAutomaticRedirectionToHomepage();
         }
 
-        // Output
         $this->output();
     }
 
     /**
-     * @param string  $sGatewayName
+     * @param string $sGatewayName
      * @param int $iItemNumber
      *
      * @return void
@@ -248,9 +258,7 @@ class MainController extends Controller
     public function notification($sGatewayName = '', $iItemNumber = 0)
     {
         // Save buyer information to a log file
-        if ($sGatewayName === PayPal::class || $sGatewayName === Braintree::class ||
-            $sGatewayName === Stripe::class || $sGatewayName === TwoCO::class
-        ) {
+        if ($this->isValidPaymentGateway($sGatewayName)) {
             // Add payment info into the log file
             $this->log(new $sGatewayName(false), t('%0% payment was made with the following information:', $sGatewayName));
         }
@@ -263,14 +271,14 @@ class MainController extends Controller
 
     public function info()
     {
-        $this->sTitle = t('Details of the membership');
+        $this->sTitle = t('Membership Details');
         $this->view->page_title = $this->view->h2_title = $this->sTitle;
 
         $oInfo = $this->oUserModel->getMembershipDetails($this->iProfileId);
-        if ($oInfo->expirationDays != 0 && !empty($oInfo->membershipDate)) {
-            $oDate = new \DateTime($oInfo->membershipDate);
-            $oDate->add(new \DateInterval( sprintf('P%dD', $oInfo->expirationDays)) );
-            $this->view->expirationDate = $oDate->format($this->config->values['language.application']['date_time_format']);
+        if ($this->isMembershipExpirable($oInfo)) {
+            $oDate = new DateTime($oInfo->membershipDate);
+            $oDate->add(new DateInterval(sprintf('P%dD', $oInfo->expirationDays)));
+            $this->view->expirationDate = $oDate->format($this->config->values['language.application']['textual_date_format']);
             unset($oDate);
         } else {
             $this->view->expirationDate = t('Never');
@@ -286,7 +294,7 @@ class MainController extends Controller
      *
      * @return void
      */
-    protected function updateAffCom()
+    private function updateAffCom()
     {
         // Load the Affiliate config file
         $this->config->load(PH7_PATH_SYS_MOD . 'affiliate' . PH7_DS . PH7_CONFIG . PH7_CONFIG_FILE);
@@ -298,7 +306,7 @@ class MainController extends Controller
         }
 
         $iAmount = $this->oUserModel->readProfile($this->iProfileId)->price;
-        $iAffCom = ($iAmount*$this->config->values['module.setting']['rate.user_membership_payment']/100);
+        $iAffCom = ($iAmount * $this->config->values['module.setting']['rate.user_membership_payment'] / 100);
 
         if ($iAffCom > 0) {
             $this->oUserModel->updateUserJoinCom($iAffId, $iAffCom);
@@ -308,11 +316,11 @@ class MainController extends Controller
     /**
      * Send a notification email to the admin about the payment (IPN -> Instant Payment Notification).
      *
-     * @param int$iMembershipId
+     * @param int $iMembershipId
      *
      * @return int Number of recipients who were accepted for delivery.
      */
-    protected function sendNotifyMail($iMembershipId)
+    private function sendNotifyMail($iMembershipId)
     {
         $oMembershipData = $this->oPayModel->getMemberships($iMembershipId);
 
@@ -330,7 +338,10 @@ class MainController extends Controller
         $this->view->browser_info = t('User Web browser info: %0%', $this->browser->getUserAgent());
         $this->view->ip = t('Buyer IP address: %0%', $this->design->ip(null, false));
 
-        $sMessageHtml = $this->view->parseMail(PH7_PATH_SYS . 'global/' . PH7_VIEWS . PH7_TPL_MAIL_NAME . '/tpl/mail/sys/mod/payment/ipn.tpl', $sTo);
+        $sMessageHtml = $this->view->parseMail(
+            PH7_PATH_SYS . 'global/' . PH7_VIEWS . PH7_TPL_MAIL_NAME . '/tpl/mail/sys/mod/payment/ipn.tpl',
+            $sTo
+        );
 
         $aInfo = [
             'to' => $sTo,
@@ -348,7 +359,7 @@ class MainController extends Controller
      *
      * @return void
      */
-    protected function log(ApiInterface $oProvider, $sMsg)
+    private function log(ApiInterface $oProvider, $sMsg)
     {
         if ($this->config->values['module.setting']['log_file.enabled']) {
             $sLogTxt = $sMsg . File::EOL . File::EOL . File::EOL;
@@ -361,9 +372,9 @@ class MainController extends Controller
      *
      * @return void
      */
-    protected function clearCache()
+    private function clearCache()
     {
-        (new Cache)->start(UserCoreModel::CACHE_GROUP, 'membershipdetails' . $this->iProfileId, null)->clear();
+        (new Cache)->start(UserCoreModel::CACHE_GROUP, 'membershipDetails' . $this->iProfileId, null)->clear();
     }
 
     /**
@@ -377,13 +388,38 @@ class MainController extends Controller
     }
 
     /**
+     * @param stdClass $oInfo
+     *
+     * @return bool
+     */
+    private function isMembershipExpirable(stdClass $oInfo)
+    {
+        return $oInfo->expirationDays != 0 && !empty($oInfo->membershipDate);
+    }
+
+    /**
+     * @param string $sGatewayName
+     *
+     * @return bool
+     */
+    private function isValidPaymentGateway($sGatewayName)
+    {
+        return in_array($sGatewayName, self::PAYMENT_GATEWAYS, true);
+    }
+
+    /**
      * Set automatic redirection to homepage if payment was successful.
      *
      * @return void
      */
     private function setAutomaticRedirectionToHomepage()
     {
-        $this->design->setRedirect($this->registry->site_url, null, null, 4);
+        $this->design->setRedirect(
+            $this->registry->site_url,
+            null,
+            null,
+            self::REDIRECTION_DELAY
+        );
     }
 
     /**

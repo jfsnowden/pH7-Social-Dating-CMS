@@ -3,25 +3,39 @@
  * @title          File Controller
  *
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Admin / Controller
  * @version        1.4
- * @history        We have removed the functionality of deletions and adding files for security reasons and to maintain proper operation at CMS
+ * @history        Removed the functionality of deletions and adding files for security reasons and to maintain proper operations.
  */
 
 namespace PH7;
 
 use PH7\Framework\Mvc\Router\Uri;
+use PH7\Framework\Security\Ban\Ban;
+use PH7\Framework\Service\Suggestion;
 use PH7\Framework\Url\Header;
 
 class FileController extends Controller
 {
+    const PUBLIC_DIR_NAME = 'public';
+    const PROTECTED_DIR_NAME = 'protected';
+
+    const THEME_FILE_EXTS = [
+        '.tpl',
+        '.css',
+        '.js'
+    ];
+
+    /** @var string */
     private $sTitle;
 
     public function index()
     {
-        Header::redirect(Uri::get(PH7_ADMIN_MOD, 'file', 'display'));
+        Header::redirect(
+            Uri::get(PH7_ADMIN_MOD, 'file', 'display')
+        );
     }
 
     public function display($sDir = '')
@@ -29,10 +43,13 @@ class FileController extends Controller
         /* Add the stylesheet files for the Elfinder File Manager */
         $this->design->addCss(PH7_STATIC . 'fileManager/css/', 'elfinder.css,theme.css');
 
-        $sIsDirTxt = ($sDir == 'protected') ? t('Protected') : t('Public');
+        $bIsProtectedDir = $sDir === self::PROTECTED_DIR_NAME;
+
+        $sIsDirTxt = $bIsProtectedDir ? t('Protected') : t('Public');
         $this->sTitle = t('File Manager System | %0%', $sIsDirTxt);
-        $this->view->type = ($sDir == 'protected') ? 'protected' : 'public';
+        $this->view->type = $bIsProtectedDir ? self::PROTECTED_DIR_NAME : self::PUBLIC_DIR_NAME;
         $this->view->page_title = $this->view->h2_title = $this->sTitle;
+
         $this->output();
     }
 
@@ -40,8 +57,9 @@ class FileController extends Controller
     {
         $this->sTitle = t('Template Files');
 
-        $this->_displayAction(PH7_PATH_TPL, array('.tpl', '.css', '.js'));
+        $this->displayAction(PH7_PATH_TPL, self::THEME_FILE_EXTS);
         $this->manualTplInclude('publicdisplay.inc.tpl');
+
         $this->output();
     }
 
@@ -49,8 +67,13 @@ class FileController extends Controller
     {
         $this->sTitle = t('Email Templates');
 
-        $this->_displayAction(PH7_PATH_SYS . 'global' . PH7_DS . PH7_VIEWS . PH7_TPL_MAIL_NAME . PH7_DS . 'tpl' . PH7_DS . 'mail' . PH7_DS, '.tpl');
+        $this->displayAction(
+            PH7_PATH_SYS . 'global' . PH7_DS . PH7_VIEWS . PH7_TPL_MAIL_NAME . PH7_DS . 'tpl' . PH7_DS . 'mail' . PH7_DS,
+            '.tpl'
+        );
+
         $this->manualTplInclude('protecteddisplay.inc.tpl');
+
         $this->output();
     }
 
@@ -58,8 +81,9 @@ class FileController extends Controller
     {
         $this->sTitle = t('Ban Files');
 
-        $this->_displayAction(PH7_PATH_APP_CONFIG . \PH7\Framework\Security\Ban\Ban::DIR, '.txt');
+        $this->displayAction(PH7_PATH_APP_CONFIG . Ban::DIR, '.txt');
         $this->manualTplInclude('protecteddisplay.inc.tpl');
+
         $this->output();
     }
 
@@ -67,8 +91,9 @@ class FileController extends Controller
     {
         $this->sTitle = t('Suggestion Files');
 
-        $this->_displayAction(PH7_PATH_APP_CONFIG . \PH7\Framework\Service\Suggestion::DIR, '.txt');
+        $this->displayAction(PH7_PATH_APP_CONFIG . Suggestion::DIR, '.txt');
         $this->manualTplInclude('protecteddisplay.inc.tpl');
+
         $this->output();
     }
 
@@ -76,31 +101,37 @@ class FileController extends Controller
     {
         $this->sTitle = t('Pages');
 
-        $this->_displayAction(PH7_PATH_SYS_MOD . 'page' . PH7_DS . PH7_VIEWS . PH7_TPL_MOD_NAME, '.tpl');
+        $this->displayAction(
+            PH7_PATH_SYS_MOD . 'page' . PH7_DS . PH7_VIEWS . PH7_TPL_MOD_NAME,
+            '.tpl'
+        );
+
         $this->manualTplInclude('protecteddisplay.inc.tpl');
+
         $this->output();
     }
 
     public function somethingProtectedAppDisplay()
     {
-        $this->_displayAction(PH7_PATH_APP . $this->httpRequest->get('dir'));
+        $this->displayAction(PH7_PATH_APP . $this->httpRequest->get('dir'));
         $this->manualTplInclude('protecteddisplay.inc.tpl');
+
         $this->output();
     }
 
     public function publicEdit()
     {
         $this->sTitle = t('Edit Public Files');
-
         $this->view->page_title = $this->view->h2_title = $this->sTitle;
+
         $this->output();
     }
 
     public function protectedEdit()
     {
         $this->sTitle = t('Edit Protected Files');
-
         $this->view->page_title = $this->view->h2_title = $this->sTitle;
+
         $this->output();
     }
 
@@ -112,13 +143,21 @@ class FileController extends Controller
      *
      * @return void
      */
-    private function _displayAction($sFile, $mExt = null)
+    private function displayAction($sFile, $mExt = null)
     {
-        if (empty($this->sTitle))
+        if (!$this->isPageTitleSet()) {
             $this->sTitle = t('File Manager');
+        }
 
         $this->view->page_title = $this->view->h2_title = $this->sTitle;
-
         $this->view->filesList = $this->file->getFileList($sFile, $mExt);
+    }
+
+    /**
+     * @return bool
+     */
+    private function isPageTitleSet()
+    {
+        return !empty($this->sTitle);
     }
 }

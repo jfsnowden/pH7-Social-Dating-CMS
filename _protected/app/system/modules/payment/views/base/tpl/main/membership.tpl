@@ -9,15 +9,37 @@
                             <li class="list-group-item clearfix">
                                 <div class="pull-left">
                                     <h4 class="underline">{% $membership->name %}</h4>
-                                    <h5>{% $config->values['module.setting']['currency_sign'] %}{% $membership->price %}</h5>
+                                    <h5>
+                                        {% $config->values['module.setting']['currency_sign'] %}{% $membership->price %}
+                                        <span class="small">
+                                            {if $membership->expirationDays > 0}
+                                                {if $membership->expirationDays == 1}
+                                                    {lang 'per day', $membership->expirationDays}
+                                                {else}
+                                                    {lang 'every %0% days', $membership->expirationDays}
+                                                {/if}
+                                            {else}
+                                                <span class="underline">{lang 'one-time payment'}</span>
+                                            {/if}
+                                        </span>
+                                    </h5>
                                     <p class="italic">{% $membership->description %}</p>
                                 </div>
                                 <p class="pull-right">
                                     <a class="btn btn-default" href="{{ $design->url('payment', 'main', 'pay', $membership->groupId) }}" title="{lang 'Purchase this membership!'}">{lang 'Choose It'}</a>
                                 </p>
                             </li>
+                        {else}
+                            {{ $not_found = true }}
                         {/if}
                     {/each}
+
+                    {if isset($not_found)}
+                        <li class="red">
+                            {lang 'There are no other memberships available for the moment.'}<br />
+                            {lang 'Please come back later on.'}
+                        </li>
+                    {/if}
                 </ul>
             </div>
         </div>

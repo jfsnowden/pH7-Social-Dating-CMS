@@ -4,7 +4,7 @@
  * @desc             XSLT PHP template engine.
  *
  * @author           Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright        (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / Framework / Layout / Tpl / Engine / PH7Xsl
  * @version          1.1
@@ -14,35 +14,50 @@ namespace PH7\Framework\Layout\Tpl\Engine\PH7Xsl;
 
 defined('PH7') or exit('Restricted access');
 
+use DOMDocument;
+use DOMElement;
+use XsltProcessor;
+
 class PH7Xsl
 {
     const ROOT_NAMESPACE = 'template';
 
+    /** @var DOMDocument */
     private $oXml;
+
+    /** @var DOMDocument */
     private $oXsl;
+
+    /** @var XsltProcessor */
     private $oXslProcessor;
+
+    /** @var string */
     private $sOutput;
+
+    /** @var DOMElement */
     private $oRoot;
+
+    /** @var string */
     private $sFile;
+
+    /** @var bool */
     private $bPhpFunc = true;
 
     /**
-     * Constructor.
-     *
      * @param string $sFile The XSL file.
      */
     public function __construct($sFile)
     {
         // Creating objects
-        $this->oXml = new \DOMDocument('1.0', 'UTF-8');
-        $this->oXsl = new \DOMDocument;
-        $this->oXslProcessor = new \XsltProcessor;
+        $this->oXml = new DOMDocument('1.0', 'UTF-8');
+        $this->oXsl = new DOMDocument;
+        $this->oXslProcessor = new XsltProcessor;
 
         $this->sFile = $sFile;
 
         $this->load();
 
-         // Creation of the XML root node mandatory
+        // Creation of the XML root node mandatory
         $this->oRoot = $this->oXml->createElement(static::ROOT_NAMESPACE);
         // Insertion of this node in the tree view of the XML file
         $this->oXml->appendChild($this->oRoot);
@@ -51,7 +66,7 @@ class PH7Xsl
     /**
      * Enable or disable the PHP functions in the XSTL template.
      *
-     * @param boolean $bEnable Default TRUE
+     * @param bool $bEnable
      *
      * @return self
      */
@@ -66,7 +81,7 @@ class PH7Xsl
      * Generate XML Node.
      *
      * @param mixed $aData array
-     * @param string $sNamespace Optional. Default ''
+     * @param string $sNamespace
      *
      * @return self
      *
@@ -112,8 +127,8 @@ class PH7Xsl
      * Set variables.
      *
      * @param array|string $mKey
-     * @param string $sValue Optional only if the variables are passed through an array. Default ''
-     * @param string $sNamespace Optional. Default ''
+     * @param string $sValue Optional. Only if the variables are passed through an array.
+     * @param string $sNamespace
      *
      * @return self
      */

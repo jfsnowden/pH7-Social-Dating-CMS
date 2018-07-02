@@ -1,7 +1,7 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Affiliate / Form / Processing
  */
@@ -19,6 +19,9 @@ use PH7\Framework\Url\Header;
 
 class LoginFormProcess extends Form implements LoginableForm
 {
+    const BRUTE_FORCE_SLEEP_DELAY = 1;
+
+    /** @var AffiliateModel */
     private $oAffModel;
 
     public function __construct()
@@ -36,25 +39,45 @@ class LoginFormProcess extends Form implements LoginableForm
         $iMaxAttempts = (int)DbConfig::getSetting('maxAffiliateLoginAttempts');
         $iTimeDelay = (int)DbConfig::getSetting('loginAffiliateAttemptTime');
 
-        if ($bIsLoginAttempt && !$oSecurityModel->checkLoginAttempt($iMaxAttempts, $iTimeDelay, $sEmail, $this->view, 'Affiliates')) {
+        if ($bIsLoginAttempt &&
+            !$oSecurityModel->checkLoginAttempt(
+                $iMaxAttempts,
+                $iTimeDelay,
+                $sEmail,
+                $this->view,
+                DbTableName::AFFILIATE
+            )
+        ) {
             \PFBC\Form::setError('form_login_aff', Form::loginAttemptsExceededMsg($iTimeDelay));
             return; // Stop execution of the method.
         }
 
         // Check Login
-        $sLogin = $this->oAffModel->login($sEmail, $sPassword, 'Affiliates');
+        $sLogin = $this->oAffModel->login($sEmail, $sPassword, DbTableName::AFFILIATE);
         if ($sLogin === 'email_does_not_exist' || $sLogin === 'password_does_not_exist') {
-            sleep(1); // Security against brute-force attack to avoid drowning the server and the database
+            $this->preventBruteForce(self::BRUTE_FORCE_SLEEP_DELAY);
 
             if ($sLogin === 'email_does_not_exist') {
                 $this->enableCaptcha();
                 \PFBC\Form::setError('form_login_aff', t('Oops! "%0%" is not associated with any %site_name% account.', escape(substr($sEmail, 0, PH7_MAX_EMAIL_LENGTH))));
-                $oSecurityModel->addLoginLog($sEmail, 'Guest', 'No Password', 'Failed! Incorrect Username', 'Affiliates');
+                $oSecurityModel->addLoginLog(
+                    $sEmail,
+                    'Guest',
+                    'No Password',
+                    'Failed! Incorrect Username',
+                    DbTableName::AFFILIATE
+                );
             } elseif ($sLogin === 'password_does_not_exist') {
-                $oSecurityModel->addLoginLog($sEmail, 'Guest', $sPassword, 'Failed! Incorrect Password', 'Affiliates');
+                $oSecurityModel->addLoginLog(
+                    $sEmail,
+                    'Guest',
+                    $sPassword,
+                    'Failed! Incorrect Password',
+                    DbTableName::AFFILIATE
+                );
 
                 if ($bIsLoginAttempt) {
-                    $oSecurityModel->addLoginAttempt('Affiliates');
+                    $oSecurityModel->addLoginAttempt(DbTableName::AFFILIATE);
                 }
 
                 $this->enableCaptcha();
@@ -64,33 +87,27 @@ class LoginFormProcess extends Form implements LoginableForm
                 \PFBC\Form::setError('form_login_aff', $sWrongPwdTxt);
             }
         } else {
-            $oSecurityModel->clearLoginAttempts('Affiliates');
+            $oSecurityModel->clearLoginAttempts(DbTableName::AFFILIATE);
             $this->session->remove('captcha_aff_enabled');
-            $iId = $this->oAffModel->getId($sEmail, null, 'Affiliates');
-            $oAffData = $this->oAffModel->readProfile($iId, 'Affiliates');
+            $iId = $this->oAffModel->getId($sEmail, null, DbTableName::AFFILIATE);
+            $oAffData = $this->oAffModel->readProfile($iId, DbTableName::AFFILIATE);
 
             $this->updatePwdHashIfNeeded($sPassword, $oAffData->password, $sEmail);
 
             $oAff = new AffiliateCore;
-            if (true !== ($mStatus = $oAff->checkAccountStatus($oAffData)))
-            {
+            if (true !== ($mStatus = $oAff->checkAccountStatus($oAffData))) {
                 \PFBC\Form::setError('form_login_aff', $mStatus);
-            }
-            else
-            {
+            } else {
                 $o2FactorModel = new TwoFactorAuthCoreModel('affiliate');
-                if ($o2FactorModel->isEnabled($iId))
-                {
+                if ($o2FactorModel->isEnabled($iId)) {
                     // Store the affiliate ID for 2FA
                     $this->session->set(TwoFactorAuthCore::PROFILE_ID_SESS_NAME, $iId);
 
                     Header::redirect(Uri::get('two-factor-auth', 'main', 'verificationcode', 'affiliate'));
-                }
-                else
-                {
+                } else {
                     $oAff->setAuth($oAffData, $this->oAffModel, $this->session, $oSecurityModel);
 
-                    Header::redirect(Uri::get('affiliate','account','index'), t('You are successfully logged in!'));
+                    Header::redirect(Uri::get('affiliate', 'account', 'index'), t('You are successfully logged in!'));
                 }
             }
         }
@@ -102,7 +119,7 @@ class LoginFormProcess extends Form implements LoginableForm
     public function updatePwdHashIfNeeded($sPassword, $sUserPasswordHash, $sEmail)
     {
         if ($sNewPwdHash = Security::pwdNeedsRehash($sPassword, $sUserPasswordHash)) {
-            $this->oAffModel->changePassword($sEmail, $sNewPwdHash, 'Affiliates');
+            $this->oAffModel->changePassword($sEmail, $sNewPwdHash, DbTableName::AFFILIATE);
         }
     }
 

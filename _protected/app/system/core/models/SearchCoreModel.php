@@ -4,7 +4,7 @@
  * @desc           Useful methods for the Search.
  *
  * @author         Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Core / Model
  * @version        1.3
@@ -50,13 +50,15 @@ class SearchCoreModel
      * Order By method.
      *
      * @param string $sColumn Table Column
-     * @param integer $iSort SearchCoreModel::ASC OR SearchCoreModel::DESC
+     * @param int $iSort SearchCoreModel::ASC OR SearchCoreModel::DESC
      * @param string|null $sAsTable The Alias Table, this prevents the ambiguous clause
      *
      * @return string SQL order by query
      */
     public static function order($sColumn, $iSort = self::ASC, $sAsTable = null)
     {
+        $iSort = (int)$iSort; // Make sure it's an integer and not a digit string!
+
         switch ($sColumn) {
             case static::NAME:
             case static::TITLE:
@@ -76,7 +78,7 @@ class SearchCoreModel
             case static::SEND_DATE:
             case static::ADDED_DATE:
             case static::UPDATED:
-                $sAsTable = (!empty($sAsTable)) ? $sAsTable . '.' : '';
+                $sAsTable = !empty($sAsTable) ? $sAsTable . '.' : '';
                 $sOrderBy = $sColumn;
                 break;
 
@@ -89,12 +91,12 @@ class SearchCoreModel
     }
 
     /**
-     * @param integer $iSort
+     * @param int $iSort
      *
      * @return string
      */
-    protected static function sort($iSort)
+    private static function sort($iSort)
     {
-        return ($iSort === static::DESC) ? ' DESC ' : ' ASC ';
+        return $iSort === static::DESC ? ' DESC ' : ' ASC ';
     }
 }

@@ -1,7 +1,7 @@
 <?php
 /*
- * Notice: This file has been modified by the pH7CMS development team => Pierre-Henry Soria <http://ph7cms.com>.
- * Version now compatible with PHP 5+ and PHP 7+ (like PHP4 constructors have been move to PHP5 constructors because the old one wasn't working anymore with the new PHP version).
+ * Notice: This file has been modified by the pH7CMS development team => Pierre-Henry Soria <http://ph7cms.com>
+ * Version now compatible with PHP 5+ and PHP 7+ (like PHP4 constructors have been move to PHP5 constructors because the old one wasn't working anymore with newer PHP version).
  */
 
 namespace PH7\Framework\Translate\Adapter\Gettext;
@@ -26,147 +26,166 @@ defined('PH7') or exit('Restricted access');
    You should have received a copy of the GNU General Public License
    along with PHP-gettext; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
 */
 
 
-  // Simple class to wrap file streams, string streams, etc.
-  // seek is essential, and it should be byte stream
-class StreamReader {
-  // should return a string [FIXME: perhaps return array of bytes?]
-  function read($bytes) {
-    return false;
-  }
-
-  // should return new position
-  function seekto($position) {
-    return false;
-  }
-
-  // returns current position
-  function currentpos() {
-    return false;
-  }
-
-  // returns length of entire stream (limit for seekto()s)
-  function length() {
-    return false;
-  }
-}
-
-class StringReader {
-  var $_pos;
-  var $_str;
-
-  public function __construct($str='') {
-    $this->_str = $str;
-    $this->_pos = 0;
-  }
-
-  function read($bytes) {
-    $data = substr($this->_str, $this->_pos, $bytes);
-    $this->_pos += $bytes;
-    if (strlen($this->_str)<$this->_pos)
-      $this->_pos = strlen($this->_str);
-
-    return $data;
-  }
-
-  function seekto($pos) {
-    $this->_pos = $pos;
-    if (strlen($this->_str)<$this->_pos)
-      $this->_pos = strlen($this->_str);
-    return $this->_pos;
-  }
-
-  function currentpos() {
-    return $this->_pos;
-  }
-
-  function length() {
-    return strlen($this->_str);
-  }
-}
-
-
-class FileReader {
-  var $_pos;
-  var $_fd;
-  var $_length;
-
-  public function __construct($filename) {
-    if (file_exists($filename)) {
-
-      $this->_length=filesize($filename);
-      $this->_pos = 0;
-      $this->_fd = fopen($filename,'rb');
-      if (!$this->_fd) {
-        $this->error = 3; // Cannot read file, probably permissions
+// Simple class to wrap file streams, string streams, etc.
+// seek is essential, and it should be byte stream
+class StreamReader
+{
+    // should return a string [FIXME: perhaps return array of bytes?]
+    function read($bytes)
+    {
         return false;
-      }
-    } else {
-      $this->error = 2; // File doesn't exist
-      return false;
     }
-  }
 
-  function read($bytes) {
-    if ($bytes) {
-      fseek($this->_fd, $this->_pos);
+    // should return new position
+    function seekto($position)
+    {
+        return false;
+    }
 
-      // PHP 5.1.1 does not read more than 8192 bytes in one fread()
-      // the discussions at PHP Bugs suggest it's the intended behaviour
-      $data = '';
-      while ($bytes > 0) {
-        $chunk  = fread($this->_fd, $bytes);
-        $data  .= $chunk;
-        $bytes -= strlen($chunk);
-      }
-      $this->_pos = ftell($this->_fd);
+    // returns current position
+    function currentpos()
+    {
+        return false;
+    }
 
-      return $data;
-    } else return '';
-  }
+    // returns length of entire stream (limit for seekto()s)
+    function length()
+    {
+        return false;
+    }
+}
 
-  function seekto($pos) {
-    fseek($this->_fd, $pos);
-    $this->_pos = ftell($this->_fd);
-    return $this->_pos;
-  }
+class StringReader
+{
+    private $_pos;
+    protected $_str;
 
-  function currentpos() {
-    return $this->_pos;
-  }
+    public function __construct($str = '')
+    {
+        $this->_str = $str;
+        $this->_pos = 0;
+    }
 
-  function length() {
-    return $this->_length;
-  }
+    function read($bytes)
+    {
+        $data = substr($this->_str, $this->_pos, $bytes);
+        $this->_pos += $bytes;
+        if (strlen($this->_str) < $this->_pos)
+            $this->_pos = strlen($this->_str);
 
-  function close() {
-    fclose($this->_fd);
-  }
+        return $data;
+    }
+
+    function seekto($pos)
+    {
+        $this->_pos = $pos;
+        if (strlen($this->_str) < $this->_pos)
+            $this->_pos = strlen($this->_str);
+        return $this->_pos;
+    }
+
+    function currentpos()
+    {
+        return $this->_pos;
+    }
+
+    function length()
+    {
+        return strlen($this->_str);
+    }
+}
+
+
+class FileReader
+{
+    private $_pos;
+    private $_fd;
+    private $_length;
+
+    public function __construct($filename)
+    {
+        if (file_exists($filename)) {
+
+            $this->_length = filesize($filename);
+            $this->_pos = 0;
+            $this->_fd = fopen($filename, 'rb');
+            if (!$this->_fd) {
+                $this->error = 3; // Cannot read file, probably permissions
+                return false;
+            }
+        } else {
+            $this->error = 2; // File doesn't exist
+            return false;
+        }
+    }
+
+    function read($bytes)
+    {
+        if ($bytes) {
+            fseek($this->_fd, $this->_pos);
+
+            // PHP 5.1.1 does not read more than 8192 bytes in one fread()
+            // the discussions at PHP Bugs suggest it's the intended behaviour
+            $data = '';
+            while ($bytes > 0) {
+                $chunk = fread($this->_fd, $bytes);
+                $data .= $chunk;
+                $bytes -= strlen($chunk);
+            }
+            $this->_pos = ftell($this->_fd);
+
+            return $data;
+        } else return '';
+    }
+
+    function seekto($pos)
+    {
+        fseek($this->_fd, $pos);
+        $this->_pos = ftell($this->_fd);
+        return $this->_pos;
+    }
+
+    function currentpos()
+    {
+        return $this->_pos;
+    }
+
+    function length()
+    {
+        return $this->_length;
+    }
+
+    function close()
+    {
+        fclose($this->_fd);
+    }
 
 }
 
 // Preloads entire file in memory first, then creates a StringReader
 // over it (it assumes knowledge of StringReader internals)
-class CachedFileReader extends StringReader {
-  public function __construct($filename) {
-    if (file_exists($filename)) {
+class CachedFileReader extends StringReader
+{
+    public function __construct($filename)
+    {
+        if (file_exists($filename)) {
 
-      $length=filesize($filename);
-      $fd = fopen($filename,'rb');
+            $length = filesize($filename);
+            $fd = fopen($filename, 'rb');
 
-      if (!$fd) {
-        $this->error = 3; // Cannot read file, probably permissions
-        return false;
-      }
-      $this->_str = fread($fd, $length);
-      fclose($fd);
+            if (!$fd) {
+                $this->error = 3; // Cannot read file, probably permissions
+                return false;
+            }
+            $this->_str = fread($fd, $length);
+            fclose($fd);
 
-    } else {
-      $this->error = 2; // File doesn't exist
-      return false;
+        } else {
+            $this->error = 2; // File doesn't exist
+            return false;
+        }
     }
-  }
 }

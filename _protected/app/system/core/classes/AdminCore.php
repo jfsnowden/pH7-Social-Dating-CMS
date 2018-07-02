@@ -1,7 +1,7 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Core / Class
  */
@@ -28,22 +28,24 @@ class AdminCore extends UserCore
     public static function auth()
     {
         $oSession = new Session;
-        $bIsConnected = ((int)$oSession->exists('admin_id')) && $oSession->get('admin_ip') === Ip::get() && $oSession->get('admin_http_user_agent') === (new Browser)->getUserAgent();
+        $bIsConnected = ((int)$oSession->exists('admin_id')) &&
+            $oSession->get('admin_ip') === Ip::get() &&
+            $oSession->get('admin_http_user_agent') === (new Browser)->getUserAgent();
         unset($oSession);
 
         return $bIsConnected;
     }
 
     /**
-     * Determines if the ID is from Root Admin (main admin).
+     * Determines if the ID is from Root Admin user (main admin).
      *
-     * @param  integer $iProfileId
+     * @param int $iProfileId
      *
      * @return bool
      */
     public static function isRootProfileId($iProfileId)
     {
-        return $iProfileId == static::ROOT_PROILE_ID;
+        return $iProfileId === static::ROOT_PROILE_ID;
     }
 
     /**
@@ -86,7 +88,13 @@ class AdminCore extends UserCore
             'admin_token' => Various::genRnd($oAdminData->email),
         ];
         $oSession->set($aSessionData);
-        $oSecurityModel->addLoginLog($oAdminData->email, $oAdminData->username, '*****', 'Logged in!', 'Admins');
-        $oAdminModel->setLastActivity($oAdminData->profileId, 'Admins');
+        $oSecurityModel->addLoginLog(
+            $oAdminData->email,
+            $oAdminData->username,
+            '*****',
+            'Logged in!',
+            DbTableName::ADMIN
+        );
+        $oAdminModel->setLastActivity($oAdminData->profileId, DbTableName::ADMIN);
     }
 }

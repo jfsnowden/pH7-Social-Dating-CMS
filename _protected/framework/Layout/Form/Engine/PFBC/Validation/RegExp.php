@@ -8,8 +8,13 @@ namespace PFBC\Validation;
 
 class RegExp extends \PFBC\Validation
 {
+    /** @var string */
     protected $pattern;
 
+    /**
+     * @param string $sPattern
+     * @param string $sMsg
+     */
     public function __construct($sPattern, $sMsg = '')
     {
         $this->pattern = $sPattern;
@@ -19,8 +24,10 @@ class RegExp extends \PFBC\Validation
 
     public function isValid($sValue)
     {
-        if ($this->isNotApplicable($sValue) || preg_match('#^' . $this->pattern . '$#', $sValue))
+        if ($this->isNotApplicable($sValue) || preg_match('#^' . $this->pattern . '$#', $sValue)) {
             return true;
+        }
+
         return false;
     }
 }

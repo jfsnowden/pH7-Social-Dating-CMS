@@ -3,7 +3,7 @@
  * @title            Constants File
  *
  * @author           Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright        (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @link             http://ph7cms.com
  * @package          PH7 / Install
@@ -27,8 +27,8 @@ $sPhp_self = str_replace('\\', '', dirname(htmlspecialchars($_SERVER['PHP_SELF']
 
 //------------ Other ----------------//
 define('PH7_ADMIN_MOD', 'admin123');
-define('PH7_REQUIRE_SERVER_VERSION', '5.6.0');
-define('PH7_REQUIRE_SQL_VERSION', '5.0');
+define('PH7_REQUIRED_SERVER_VERSION', '5.6.0');
+define('PH7_REQUIRED_SQL_VERSION', '5.0');
 define('PH7_ENCODING', 'utf-8');
 define('PH7_DEFAULT_TIMEZONE', 'America/Chicago');
 define('PH7_DS', DIRECTORY_SEPARATOR);

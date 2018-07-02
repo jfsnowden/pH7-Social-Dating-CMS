@@ -1,7 +1,7 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / User / Controller
  */
@@ -19,10 +19,10 @@ class MainController extends Controller
     const GUEST_FILE = 'index.guest';
 
     /** @var string */
-    private $_sTitle;
+    private $sTitle;
 
     /** @var bool */
-    private $_bIsMobile;
+    private $bIsMobile;
 
     /**
      * Displaying the main homepage of the website.
@@ -40,14 +40,14 @@ class MainController extends Controller
         // Only visitors
         if (!UserCore::auth()) {
             // To check if the site is called by a Mobile or Mobile Native App
-            $this->_bIsMobile = $this->view->is_mobile = (MobApp::is($this->httpRequest, $this->session) || $this->browser->isMobile());
+            $this->bIsMobile = $this->view->is_mobile = (MobApp::is($this->httpRequest, $this->session) || $this->browser->isMobile());
 
-            $this->view->is_users_block = (bool) DbConfig::getSetting('usersBlock');
+            $this->view->is_users_block = (bool)DbConfig::getSetting('usersBlock');
 
             // Background video is used only for the Splash page
-            if ($this->_getGuestTplPage() === static::GUEST_SPLASH_FILE) {
+            if ($this->getGuestTplPage() === static::GUEST_SPLASH_FILE) {
                 // Enable the Splash Video Background if enabled
-                $bIsBgVideo = (bool) DbConfig::getSetting('bgSplashVideo');
+                $bIsBgVideo = (bool)DbConfig::getSetting('bgSplashVideo');
 
                 // Assign the background video option (this tpl var is only available in index.guest_splash.tpl)
                 $this->view->is_bg_video = $bIsBgVideo;
@@ -65,7 +65,7 @@ class MainController extends Controller
             // Assigns the promo text to the view
             $this->view->promo_text = DbConfig::getMetaMain(PH7_LANG_NAME)->promoText;
 
-            $this->manualTplInclude($this->_getGuestTplPage() . '.inc.tpl');
+            $this->manualTplInclude($this->getGuestTplPage() . '.inc.tpl');
         } elseif (UserCore::auth()) {
             // Set CSS and JS files
             $this->design->addCss(PH7_LAYOUT . PH7_TPL . PH7_TPL_NAME . PH7_SH . PH7_CSS, 'zoomer.css');
@@ -83,18 +83,18 @@ class MainController extends Controller
     public function login()
     {
         // Display Sign In page
-        $this->_sTitle = t('Sign In to %site_name%');
-        $this->view->page_title = $this->_sTitle;
-        $this->view->h1_title = $this->_sTitle;
+        $this->sTitle = t('Sign In to %site_name%');
+        $this->view->page_title = $this->sTitle;
+        $this->view->h1_title = $this->sTitle;
         $this->output();
     }
 
     public function resendActivation()
     {
         // Display Resend Activation page
-        $this->_sTitle = t('Resend activation email');
-        $this->view->page_title = $this->_sTitle;
-        $this->view->h2_title = $this->_sTitle;
+        $this->sTitle = t('Resend activation email');
+        $this->view->page_title = $this->sTitle;
+        $this->view->h2_title = $this->sTitle;
         $this->output();
     }
 
@@ -103,9 +103,9 @@ class MainController extends Controller
         // If the "member_remember" and "member_id" cookies do not exist, nothing happens.
         (new Cookie)->remove(['member_remember', 'member_id']);
 
-        $this->_sTitle = t('See you soon!');
-        $this->view->page_title = $this->_sTitle;
-        $this->view->h2_title = $this->_sTitle;
+        $this->sTitle = t('See you soon!');
+        $this->view->page_title = $this->sTitle;
+        $this->view->h2_title = $this->sTitle;
         $this->design->setRedirect($this->registry->site_url, null, null, 3);
         $this->output();
     }
@@ -119,16 +119,18 @@ class MainController extends Controller
      * Get the guest homepage template file.
      *
      * @return string The template filename.
+     *
+     * @throws PH7InvalidArgumentException
      */
-    private function _getGuestTplPage()
+    private function getGuestTplPage()
     {
         if (isDebug() && $this->httpRequest->getExists('force')) {
-            $sPage = $this->_getPageForced();
-        } elseif ($this->_bIsMobile || $this->browser->isMobile()) {
+            $sPage = $this->getPageForced();
+        } elseif ($this->bIsMobile) {
             /* 'index.guest.inc.tpl' is not responsive enough for very small screen resolutions, so set to 'index.guest_splash.inc.tpl' by default */
             $sPage = static::GUEST_SPLASH_FILE;
         } else {
-            $bIsSplashPage = (bool) DbConfig::getSetting('splashPage');
+            $bIsSplashPage = (bool)DbConfig::getSetting('splashPage');
             $sPage = $bIsSplashPage ? static::GUEST_SPLASH_FILE : static::GUEST_FILE;
         }
 
@@ -139,11 +141,11 @@ class MainController extends Controller
      * When you are in the development mode, you can force the guest page by set a "force" GET request with the "splash" or "classic" parameter.
      * Example: "/?force=splash" or "/?force=classic"
      *
-     * @throws PH7InvalidArgumentException
-     *
      * @return string
+     *
+     * @throws PH7InvalidArgumentException
      */
-    private function _getPageForced()
+    private function getPageForced()
     {
         switch ($this->httpRequest->get('force')) {
             case 'classic':

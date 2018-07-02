@@ -1,7 +1,7 @@
 <?php
 /**
  * @author           Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright        (c) 2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2017-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / Framework / Service / SearchImage
  */
@@ -12,6 +12,9 @@ defined('PH7') or exit('Restricted access');
 
 class Url
 {
+    /** @var string */
+    private $sUrl;
+
     /**
      * @param string $sUrl
      *
@@ -19,10 +22,7 @@ class Url
      */
     public function __construct($sUrl)
     {
-        if (
-            filter_var($sUrl, FILTER_VALIDATE_URL) === false ||
-            strlen($sUrl) >= $this->getMaxImageLength()
-        ) {
+        if (!$this->isValid($sUrl)) {
             throw new InvalidUrlException(sprintf('%s is an invalid URL', $sUrl));
         }
 
@@ -35,6 +35,16 @@ class Url
     public function getValue()
     {
         return $this->sUrl;
+    }
+
+    /**
+     * @param $sUrl
+     *
+     * @return bool
+     */
+    private function isValid($sUrl)
+    {
+        return filter_var($sUrl, FILTER_VALIDATE_URL) !== false && strlen($sUrl) <= $this->getMaxImageLength();
     }
 
     /**

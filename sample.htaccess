@@ -1,17 +1,19 @@
 ####################
 # File:           .htaccess
-# Author:         Pierre-Henry Soria <ph7software@gmail.com>
-# Copyright:      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+# Author:         Pierre-Henry Soria <hello@ph7cms.com>
+# Copyright:      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
 # License:        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
 ####################
 
 ## Note: You can remove some lines below if your Apache server already supports one of the parameters below (this will relieve Apache since this file is read on every request). ##
 ## Finally, if your host allows it, you are strongly advised to put these settings in your Apache configuration file (httpd.conf). ##
 
-Options -MultiViews -Indexes
-Options +FollowSymLinks
-
 <IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+    Options +FollowSymLinks
+
     RewriteEngine On
 
     ## Uncomment the below "#RewriteBase /" (remove "#") if pH7CMS is installed in a folder, and add the folder name after the slash "/"
@@ -41,20 +43,57 @@ Options +FollowSymLinks
 ServerSignature Off
 
 # Deny access to all CGI, Perl, Python, Bash, SQL, Template, INI configuration, cache, log, temporary and text files
-<FilesMatch "\.(cgi|pl|py|sh|bash|ql|tpl|ini|cache|log|tmp|txt)">
-    Deny from all
+<FilesMatch "\.(cgi|pl|py|sh|bash|sql|tpl|ini|cache|log|tmp|txt)">
+    # Apache 2.4+
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+
+    # Apache 2.2
+    <IfModule !mod_authz_core.c>
+        Deny from all
+    </IfModule>
 </FilesMatch>
 
 # Leave open the humans.txt and robots.txt file
 <FilesMatch "humans\.txt|robots\.txt">
-    Allow from all
+    # Apache 2.4+
+    <IfModule mod_authz_core.c>
+        Require all granted
+    </IfModule>
+
+    # Apache 2.2
+    <IfModule !mod_authz_core.c>
+        Allow from all
+    </IfModule>
 </FilesMatch>
 
-# Prevent downloading files .htaccess (Default configuration of Apache)
+# Deny access for "composer.json" and "sample.htaccess" (since they won't be removed after packaging by _tools/deployment.sh)
+<FilesMatch "composer\.json|sample\.htaccess">
+    # Apache 2.4+
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+
+    # Apache 2.2
+    <IfModule !mod_authz_core.c>
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Prevent .htaccess/.htpasswd from being downloaded
 <Files ~ "^\.ht">
-    Order allow,deny
-    Deny from all
-    Satisfy All
+    # Apache 2.4+
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+
+    # Apache 2.2
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+        Satisfy all
+    </IfModule>
 </Files>
 
 # block bots spam
@@ -567,14 +606,36 @@ ServerSignature Off
     SetEnvIfNoCase User-Agent "^zerxbot" bad_bot
     SetEnvIfNoCase User-Agent "^Zeus" bad_bot
     SetEnvIfNoCase User-Agent "^ZyBorg" bad_bot
-    Order Deny,Allow
-    Deny from env=bad_bot
+
+    # Apache >= 2.4
+    <IfModule mod_authz_core.c>
+        <RequireAll>
+            Require not env bad_bot
+        </RequireAll>
+    </IfModule>
+
+    # Apache <= 2.2
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from env=bad_bot
+    </IfModule>
 </IfModule>
 
 <Limit GET POST PUT DELETE HEAD>
-    Order Allow,Deny
-    Allow from All
-    Deny from env=bad_bot
+    # Apache >= 2.4
+    <IfModule mod_authz_core.c>
+        <RequireAll>
+            Require all granted
+            Require not env bad_bot
+        </RequireAll>
+    </IfModule>
+
+    # Apache <= 2.2
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Allow from all
+        Deny from env=bad_bot
+    </IfModule>
 </Limit>
 
 ErrorDocument 400 /error/http/index?code=400
@@ -713,7 +774,7 @@ ErrorDocument 505 /error/http/index?code=505
 # Modify Headers
 <IfModule mod_headers.c>
     # Cache files
-    <FilesMatch "\.(ico|pdf|flv|jpg|jpeg|png|gif|swf|mp3|mp4)$">
+    <FilesMatch "\.(jpe?g|png|gif|ico|webp|swf|mp3|mp4|flv|webm|pdf)$">
         Header set Cache-Control "public"
         Header set Expires "Mon, 20 Apr 2060 20:00:00 GMT"
         Header unset Last-Modified

@@ -1,21 +1,31 @@
 <?php
+/**
+ * By Pierre-Henry SORIA <http://ph7.me>
+ */
 
 namespace PFBC\Element;
 
 class YesNo extends Radio
 {
-    public function __construct($label, $name, array $properties = null)
+    /** @var array */
+    private static $aOptions = [
+        '1' => 'Yes',
+        '0' => 'No'
+    ];
+
+    /**
+     * @param string $sLabel
+     * @param string $sName
+     * @param array|null $aProperties
+     */
+    public function __construct($sLabel, $sName, array $aProperties = null)
     {
-        $options = array(
-            "1" => "Yes",
-            "0" => "No"
-        );
+        if (!is_array($aProperties)) {
+            $aProperties = ['inline' => 1];
+        } elseif (!array_key_exists('inline', $aProperties)) {
+            $aProperties['inline'] = 1;
+        }
 
-        if (!is_array($properties))
-            $properties = array("inline" => 1);
-        elseif (!array_key_exists("inline", $properties))
-            $properties["inline"] = 1;
-
-        parent::__construct($label, $name, $options, $properties);
+        parent::__construct($sLabel, $sName, self::$aOptions, $aProperties);
     }
 }

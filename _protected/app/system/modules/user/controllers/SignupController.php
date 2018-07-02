@@ -3,7 +3,7 @@
  * @title          SignUp Controller
  *
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / User / Controller
  * @version        1.0
@@ -16,6 +16,8 @@ use PH7\Framework\Url\Header;
 
 class SignupController extends Controller
 {
+    const TOTAL_SIGNUP_STEPS = 3;
+
     public function step1()
     {
         // Add CSS and JavaScript files for the left profiles block
@@ -24,7 +26,7 @@ class SignupController extends Controller
         /*** Display Sign Up page ***/
 
         $bRef = $this->httpRequest->getExists('ref');
-        $bUserRef = $this->httpRequest->getExists(array('ref', 'a', 'u', 'f_n', 's'));
+        $bUserRef = $this->httpRequest->getExists(['ref', 'a', 'u', 'f_n', 's']);
 
         if ($bRef || $bUserRef) {
             $sRef = $this->httpRequest->get('ref'); // For the statistics
@@ -55,7 +57,7 @@ class SignupController extends Controller
             $this->view->userDesignModel = new UserDesignCoreModel();
         }
 
-        $this->view->page_title = ($bUserRef) ? t('Register for free to meet %0% on %site_name%. The Real Social Dating app!',  $sFirstName) : t('Free Sign Up to Meet Lovely People!');
+        $this->view->page_title = ($bUserRef) ? t('Register for free to meet %0% on %site_name%. The Real Social Dating app!', $sFirstName) : t('Free Sign Up to Meet Lovely People!');
 
         if ($bUserRef) {
             $sH1Txt = t('Register for Free to Meet <span class="pink2">%0%</span> (<span class="pink1">%1%</span>) on <span class="pink2">%site_name%</span>!', $sFirstName, $this->str->upperFirst($sUsername));
@@ -75,6 +77,7 @@ class SignupController extends Controller
     {
         $this->setTitle(t('Sign up - Step 2/3'));
         $this->setupProgressbar(2, 66);
+
         $this->output();
     }
 
@@ -82,6 +85,7 @@ class SignupController extends Controller
     {
         $this->setTitle(t('Sign up - Step 3/3'));
         $this->setupProgressbar(3, 99);
+
         $this->output();
     }
 
@@ -89,6 +93,7 @@ class SignupController extends Controller
     {
         $this->setTitle(t('Now, Upload a Profile Photo of you!'));
         $this->view->avatarDesign = new AvatarDesignCore; // Add AvatarDesign Class for displaying the avatar lightBox
+
         $this->output();
     }
 
@@ -99,7 +104,15 @@ class SignupController extends Controller
         }
 
         $this->session->destroy(); // Remove all sessions created pending registration
-        Header::redirect(Uri::get('user','main','login'), (new Registration)->getMsg());
+
+        Header::redirect(
+            Uri::get(
+                'user',
+                'main',
+                'login'
+            ),
+            (new Registration($this->view))->getMsg()
+        );
     }
 
     /**
@@ -112,6 +125,7 @@ class SignupController extends Controller
     {
         $this->view->progressbar_percentage = $iPercentage;
         $this->view->progressbar_step = $iStep;
+        $this->view->progressbar_total_steps = self::TOTAL_SIGNUP_STEPS;
     }
 
     /**

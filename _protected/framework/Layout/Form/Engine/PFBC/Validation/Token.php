@@ -10,8 +10,12 @@ use PH7\Framework\Security\CSRF\Token as SecurityToken;
 
 class Token extends \PFBC\Validation
 {
+    /** @var string */
     private $sName;
 
+    /**
+     * @param string $sName
+     */
     public function __construct($sName)
     {
         $this->message = FormMessage::errorTokenMsg();
@@ -19,7 +23,7 @@ class Token extends \PFBC\Validation
     }
 
     /**
-     * @return boolean Returns TRUE if the token is validated, FALSE otherwise.
+     * @return bool Returns TRUE if the token is validated, FALSE otherwise.
      */
     public function isValid($sValue)
     {

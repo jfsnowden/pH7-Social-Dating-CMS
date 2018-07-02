@@ -4,7 +4,7 @@
  * @desc             Various Page methods with also the pagination methods.
  *
  * @author           Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright        (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / Framework / Navigation
  * @version          1.2
@@ -51,14 +51,14 @@ class Page
      */
     protected function totalPages($iTotalItems, $iNbItemsPerPage)
     {
-        $this->iTotalItems = (int) $iTotalItems;
-        $this->iNbItemsPerPage = (int) $iNbItemsPerPage; // or intval() function, but it is slower than casting
-        $this->iCurrentPage = (int) $this->oHttpRequest->getExists('p') ? $this->oHttpRequest->get('p') : 1;
+        $this->iTotalItems = (int)$iTotalItems;
+        $this->iNbItemsPerPage = (int)$iNbItemsPerPage; // or intval() function, but it is slower than casting
+        $this->iCurrentPage = (int)$this->oHttpRequest->getExists('p') ? $this->oHttpRequest->get('p') : 1;
 
         // Ternary condition to prevent division by zero
-        $this->iTotalPages = (int) ($this->iTotalItems !== 0 && $this->iNbItemsPerPage !== 0) ? ceil($this->iTotalItems / $this->iNbItemsPerPage) : 0;
+        $this->iTotalPages = (int)($this->iTotalItems !== 0 && $this->iNbItemsPerPage !== 0) ? ceil($this->iTotalItems / $this->iNbItemsPerPage) : 0;
 
-        $this->iFirstItem = (int) ($this->iCurrentPage-1) * $this->iNbItemsPerPage;
+        $this->iFirstItem = (int)($this->iCurrentPage - 1) * $this->iNbItemsPerPage;
     }
 
     /**
@@ -70,24 +70,37 @@ class Page
     public function getTotalPages($iTotalItems, $iNbItemsPerPage = self::DEFAULT_NUMBER_ITEMS)
     {
         $this->totalPages($iTotalItems, $iNbItemsPerPage);
+
         return ($this->iTotalPages < 1) ? 1 : $this->iTotalPages;
     }
 
+    /**
+     * @return int
+     */
     public function getTotalItems()
     {
         return $this->iTotalItems;
     }
 
+    /**
+     * @return int
+     */
     public function getFirstItem()
     {
         return $this->iFirstItem < 0 ? 0 : $this->iFirstItem;
     }
 
+    /**
+     * @return int
+     */
     public function getNbItemsPerPage()
     {
         return $this->iNbItemsPerPage;
     }
 
+    /**
+     * @return int
+     */
     public function getCurrentPage()
     {
         return $this->iCurrentPage;
@@ -105,17 +118,11 @@ class Page
         $sCurrentUrl = (new HttpRequest)->currentUrl();
         $sUrl = preg_replace('#\?.+$#', '', $sCurrentUrl);
 
-        if (preg_match('#\?(.+[^\./])=(.+[^\./])$#', $sCurrentUrl))
-        {
-            $sUrlSlug = (strpos($sCurrentUrl, '&amp;') !== false) ? strrchr($sCurrentUrl, '?') : strrchr($sCurrentUrl, '?');
-            $sPageUrl = $sUrl . $sUrlSlug . '&amp;' . $sVar . '=';
-        }
-        else
-        {
-            $sPageUrl = $sUrl . static::trailingSlash($sUrl) . '?' . $sVar . '=';
+        if (preg_match('#\?(.+[^\./])=(.+[^\./])$#', $sCurrentUrl)) {
+            return $sUrl . self::getUrlSlug($sCurrentUrl) . '&amp;' . $sVar . '=';
         }
 
-        return $sPageUrl;
+        return $sUrl . self::trailingSlash($sUrl) . '?' . $sVar . '=';
     }
 
     /**
@@ -125,8 +132,18 @@ class Page
      *
      * @return string
      */
-    protected static function trailingSlash($sUrl)
+    private static function trailingSlash($sUrl)
     {
-        return (substr($sUrl, -1) !== PH7_SH && !strstr($sUrl, PH7_PAGE_EXT)) ? PH7_SH : '';
+        return substr($sUrl, -1) !== PH7_SH && !strstr($sUrl, PH7_PAGE_EXT) ? PH7_SH : '';
+    }
+
+    /**
+     * @param string $sCurrentUrl
+     *
+     * @return string
+     */
+    private static function getUrlSlug($sCurrentUrl)
+    {
+        return strpos($sCurrentUrl, '&amp;') !== false ? strrchr($sCurrentUrl, '?') : strrchr($sCurrentUrl, '?');
     }
 }

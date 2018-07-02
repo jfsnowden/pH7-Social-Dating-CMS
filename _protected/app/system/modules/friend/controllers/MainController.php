@@ -1,7 +1,7 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Friend / Controller
  */
@@ -14,9 +14,32 @@ use PH7\Framework\Security\CSRF\Token;
 
 class MainController extends Controller
 {
-    const MAX_FRIEND_PER_PAGE = 10, MAX_MUTUAL_FRIEND_PER_PAGE = 10;
+    const MAX_FRIEND_PER_PAGE = 10;
+    const MAX_MUTUAL_FRIEND_PER_PAGE = 10;
 
-    private $oUserModel, $oFriendModel, $oPage, $sUsername, $sTitle, $iId, $iMemberId, $iTotalFriends;
+    /** @var UserCoreModel */
+    private $oUserModel;
+
+    /** @var FriendModel */
+    private $oFriendModel;
+
+    /** @var Page */
+    private $oPage;
+
+    /** @var string */
+    private $sUsername;
+
+    /** @var string */
+    private $sTitle;
+
+    /** @var bool|int */
+    private $iId;
+
+    /** @var string */
+    private $iMemberId;
+
+    /** @var int */
+    private $iTotalFriends;
 
     public function __construct()
     {
@@ -29,17 +52,20 @@ class MainController extends Controller
         /**
          *  Adding JavaScript file for Ajax friend.
          */
-        $this->design->addJs(PH7_LAYOUT . PH7_SYS . PH7_MOD . $this->registry->module . PH7_SH . PH7_TPL . PH7_TPL_MOD_NAME . PH7_SH . PH7_JS, 'friend.js');
+        $this->design->addJs(
+            PH7_LAYOUT . PH7_SYS . PH7_MOD . $this->registry->module . PH7_SH . PH7_TPL . PH7_TPL_MOD_NAME . PH7_SH . PH7_JS,
+            'friend.js'
+        );
 
         /**
-         * @desc The Session of the User.
+         * Assign member ID to $iMemberId class attribute
          */
         $this->iMemberId = $this->session->get('member_id');
 
         /**
          *  If the user is logged in, we get their 'member_username' session, otherwise we get the username from the URL
          */
-        $this->sUsername = (!$this->httpRequest->getExists('username')) ? $this->session->get('member_username') : $this->httpRequest->get('username');
+        $this->sUsername = !$this->httpRequest->getExists('username') ? $this->session->get('member_username') : $this->httpRequest->get('username');
 
         /**
          * FIRST USERNAME LETTER IN UPPERCASE
@@ -76,9 +102,16 @@ class MainController extends Controller
         );
         $this->view->current_page = $this->oPage->getCurrentPage();
 
-        $oFriend = $this->oFriendModel->get($this->iId, null, $this->httpRequest->get('looking'), false,
-            $this->httpRequest->get('order'), $this->httpRequest->get('sort'), $this->oPage->
-            getFirstItem(), $this->oPage->getNbItemsPerPage());
+        $oFriend = $this->oFriendModel->get(
+            $this->iId,
+            null,
+            $this->httpRequest->get('looking'),
+            false,
+            $this->httpRequest->get('order'),
+            $this->httpRequest->get('sort'),
+            $this->oPage->getFirstItem(),
+            $this->oPage->getNbItemsPerPage()
+        );
 
         if (empty($oFriend)) {
             $this->sTitle = t("No Friend found on %0%'s profile", $this->sUsername);
@@ -95,18 +128,37 @@ class MainController extends Controller
 
         $this->view->action = '';
         $this->manualTplInclude('index.tpl');
+
         $this->output();
     }
 
     public function mutual()
     {
-        $this->iTotalFriends = $this->oFriendModel->get($this->iMemberId, $this->iId, $this->httpRequest->get('looking'), true, $this->httpRequest->get('order'), $this->httpRequest->get('sort'), null, null);
+        $this->iTotalFriends = $this->oFriendModel->get(
+            $this->iMemberId,
+            $this->iId,
+            $this->httpRequest->get('looking'),
+            true,
+            $this->httpRequest->get('order'),
+            $this->httpRequest->get('sort'),
+            null,
+            null
+        );
         $this->view->total_pages = $this->oPage->getTotalPages(
             $this->iTotalFriends, self::MAX_MUTUAL_FRIEND_PER_PAGE
         );
         $this->view->current_page = $this->oPage->getCurrentPage();
 
-        $oFriend = $this->oFriendModel->get($this->iMemberId, $this->iId, $this->httpRequest->get('looking'), false, $this->httpRequest->get('order'), $this->httpRequest->get('sort'), $this->oPage->getFirstItem(), $this->oPage->getNbItemsPerPage());
+        $oFriend = $this->oFriendModel->get(
+            $this->iMemberId,
+            $this->iId,
+            $this->httpRequest->get('looking'),
+            false,
+            $this->httpRequest->get('order'),
+            $this->httpRequest->get('sort'),
+            $this->oPage->getFirstItem(),
+            $this->oPage->getNbItemsPerPage()
+        );
 
         if (empty($oFriend)) {
             $this->sTitle = t("No Mutual Friend found on %0%'s profile", $this->sUsername);
@@ -117,7 +169,7 @@ class MainController extends Controller
             $this->sTitle = t("%0%'s Mutual Friends:", $this->sUsername);
             $this->view->page_title = $this->sTitle;
             $this->view->h2_title = $this->sTitle;
-            $this->view->friend_number = nt('%n% Mutual Friend', '%n% Mutuals Friends', $this->iTotalFriends);
+            $this->view->friend_number = nt('%n% Mutual Friend', '%n% Mutual Friends', $this->iTotalFriends);
             $this->view->friends = $oFriend;
         }
 
@@ -131,6 +183,7 @@ class MainController extends Controller
         $this->sTitle = t("Search %0%'s friends", $this->sUsername);
         $this->view->page_title = $this->sTitle;
         $this->view->h2_title = $this->sTitle;
+
         $this->output();
     }
 }

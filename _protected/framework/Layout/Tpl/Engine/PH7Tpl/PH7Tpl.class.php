@@ -3,20 +3,16 @@
  * @title            PH7 Template Engine
  * @desc             Template Engine with Compiler and Cache for pH7 CMS!
  *
- * @updated          Last Update 09/25/13 15:24
  * @author           Pierre-Henry Soria <ph7software@gmail.com>
  * @category         PH7 Template Engine
  * @package          PH7 / Framework / Layout / Tpl / Engine / PH7Tpl
- * @copyright        (c) 2011-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2011-2018, Pierre-Henry Soria. All Rights Reserved.
  * @version          1.3.0
  * @license          CC-BY License - http://creativecommons.org/licenses/by/3.0/
  *
- * @history
- * Now supports:     PHP 5 with beautiful object code (POO), (we have removed all the ugly object code of PHP 4.x).
- * Now supports:     PHP 5.3 (Adding namespace and incorporation of the template engine in the pH7 Framework).
- * Now supports:     PHP 5.4 (Adding the class member access on instantiation, e.g. (new Foo)->bar(), ...).
- *
- *
+ * @history          Supports now PHP 5 with beautiful object code (POO), (removed all the ugly object code from PHP 4.x).
+ * @history          Supports now PHP 5.3 (added namespace and incorporate the template engine into the pH7Framework).
+ * @history          Supports PHP 5.4 (added class member access on instantiation, e.g. (new Foo)->bar(), ...).
  ***************************************************************************/
 
 namespace PH7\Framework\Layout\Tpl\Engine\PH7Tpl;
@@ -26,61 +22,100 @@ defined('PH7') or exit('Restricted access');
 use PH7\Framework\Compress\Compress;
 use PH7\Framework\Core\Kernel;
 use PH7\Framework\Error\CException\PH7InvalidArgumentException;
+use PH7\Framework\File\GenerableFile;
 use PH7\Framework\Layout\Html\Design;
 use PH7\Framework\Layout\Html\Mail as MailLayout;
 use PH7\Framework\Layout\Tpl\Engine\PH7Tpl\Exception as TplException;
 use PH7\Framework\Mvc\Model\Design as DesignModel;
 use PH7\Framework\Parse\SysVar;
 
-class PH7Tpl extends Kernel
+class PH7Tpl extends Kernel implements GenerableFile
 {
-    const
-    NAME = 'PH7Tpl',
-    AUTHOR = 'Pierre-Henry Soria',
-    VERSION = '1.3.0',
-    LICENSE = 'Creative Commons Attribution 3.0 License - http://creativecommons.org/licenses/by/3.0/',
-    ERR_MSG = 'It seems you have removed some copyright links/notice in the software. If you want to remove them, first you should upgrade your site to <a href="http://ph7cms.com/order">pH7CMSPro</a><br /> or if you hold <a href="http://ph7cms.com/pro">pH7CMSPro</a>, please contact the support to get it fixed.',
+    const NAME = 'PH7Tpl';
+    const AUTHOR = 'Pierre-Henry Soria';
+    const VERSION = '1.3.0';
+    const LICENSE = 'Creative Commons Attribution 3.0 License - http://creativecommons.org/licenses/by/3.0/';
+    const ERR_MSG = 'It seems you have removed the copyright notice(s) in the software. If you really want to remove them, please email: %s';
+    const DATETIME_FORMAT = 'Y-m-d H:i:s';
 
     /**
      * @internal For better compatibility with Windows, we didn't put a slash at the end of the directory constants.
      */
-    COMPILE_DIR = 'pH7tpl_compile',
-    CACHE_DIR = 'pH7tpl_cache',
-    MAIN_COMPILE_DIR = 'public_main',
+    const COMPILE_DIR = 'pH7tpl_compile';
+    const CACHE_DIR = 'pH7tpl_cache';
+    const MAIN_COMPILE_DIR = 'public_main';
 
-    MAIN_PAGE = 'layout',
-    MAIN_COMPILE_PAGE = 'layout.cpl.php',
-    XML_SITEMAP_COMPILE_PAGE = 'mainlayout.xsl.cpl.php',
-    COMPILE_FILE_EXT = '.cpl.php';
+    const MAIN_PAGE = 'layout';
+    const MAIN_COMPILE_PAGE = 'layout.cpl.php';
+    const XML_SITEMAP_COMPILE_PAGE = 'mainlayout.xsl.cpl.php';
+    const COMPILE_FILE_EXT = '.cpl.php';
 
-    /**
-     * The attributes must always be private (or protected), so we do not indicate convention ($_var)
-     */
-    private
-    // Objects
-    $designModel,
+    const RESERVED_WORDS = [
+        'auto_include',
+        'def_main_auto_include',
+        'else',
+        'literal',
+        'lang'
+    ];
 
-    $sTplFile,
-    $sTemplateDir,
-    $sCompileDir,
-    $sCompileDir2,
-    $sCacheDir,
-    $sCacheDir2,
-    $sCode,
-    $sTemplateDirFile,
-    $sCompileDirFile,
-    $sCacheDirFile,
-    $bLicense,
-    $sTplExt = '.tpl', // Default extension
-    $bCaching = false,
-    $bHtmlCompressor,
-    $bPhpCompressor,
-    $mCacheExpire, // @var mixed (integer or null value) $mCacheExpire
-    $bXmlTags = false, // Enable (true) or Disables (false) XML Tags for the Template Engine
-    $_aVars = array(),
-    $_oVars;
+    /** @var DesignModel */
+    private $designModel;
 
-    // Hack that keeps the $config variable in the template
+    /** @var string */
+    private $sTplFile;
+
+    /** @var string */
+    private $sTemplateDir;
+
+    /** @var string */
+    private $sCompileDir;
+
+    /** @var string */
+    private $sCompileDir2;
+
+    /** @var string */
+    private $sCacheDir;
+
+    /** @var string */
+    private $sCacheDir2;
+
+    /** @var string */
+    private $sCode;
+
+    /** @var string */
+    private $sTemplateDirFile;
+
+    /** @var string */
+    private $sCompileDirFile;
+
+    /** @var string */
+    private $sCacheDirFile;
+
+    /** @var string Template extension */
+    private $sTplExt = '.tpl';
+
+    /** @var bool */
+    private $bCaching = false;
+
+    /** @var bool */
+    private $bHtmlCompressor;
+
+    /** @var bool */
+    private $bPhpCompressor;
+
+    /** @var int|null */
+    private $mCacheExpire;
+
+    /** @var bool Enable or Disables XML Tags for the Template Engine */
+    private $bXmlTags = false;
+
+    /** @var array */
+    private $_aVars = [];
+
+    /** @var PH7Tpl */
+    private $_oVars;
+
+    // Hack that keeps the $config variable in the template files
     protected $config;
 
     public function __construct()
@@ -94,11 +129,8 @@ class PH7Tpl extends Kernel
         $this->_oVars = $this;
         $this->designModel = new DesignModel;
 
-        // Enable (true) or Disables (false) html comments in the source code of the site that shows information conernant template engine such as name, version, ...
-        $this->bLicense = PH7_VALID_LICENSE;
-
-        $this->bHtmlCompressor = (bool) $this->config->values['cache']['enable.static.minify'];
-        $this->bPhpCompressor = (bool) $this->config->values['cache']['enable.static.minify'];
+        $this->bHtmlCompressor = (bool)$this->config->values['cache']['enable.static.minify'];
+        $this->bPhpCompressor = (bool)$this->config->values['cache']['enable.static.minify'];
     }
 
     /**
@@ -144,10 +176,13 @@ class PH7Tpl extends Kernel
      */
     public function setTemplateDir($sDir)
     {
-        if (is_dir($sDir))
+        if (is_dir($sDir)) {
             $this->sTemplateDir = $this->file->checkExtDir($sDir);
-        else
-            throw new PH7InvalidArgumentException('<strong>' . self::NAME . '</strong> Template Engine cannot found the "' . $sDir . '" template directory.');
+        } else {
+            throw new PH7InvalidArgumentException(
+                sprintf('<strong>%s</strong> cannot find "%s" template directory.', self::NAME, $sDir)
+            );
+        }
     }
 
     /**
@@ -164,7 +199,10 @@ class PH7Tpl extends Kernel
         if (is_dir($sDir)) {
             $this->sCompileDir = $this->file->checkExtDir($sDir);
         } else {
-            throw new PH7InvalidArgumentException('<strong>' . self::NAME . '</strong> Template Engine cannot found the "' . $sDir . '" compile directory.');
+            throw new PH7InvalidArgumentException(
+                sprintf(
+                    '<strong>%s</strong> cannot find "%s" compile directory.', self::NAME, $sDir)
+            );
         }
     }
 
@@ -182,7 +220,9 @@ class PH7Tpl extends Kernel
         if (is_dir($sDir)) {
             $this->sCacheDir = $this->file->checkExtDir($sDir);
         } else {
-            throw new PH7InvalidArgumentException('<strong>' . self::NAME . '</strong> Template Engine cannot found the "' . $sDir . '" cache directory.');
+            throw new PH7InvalidArgumentException(
+                sprintf('<strong>%s</strong> cannot find "%s" cache directory.', self::NAME, $sDir)
+            );
         }
     }
 
@@ -195,7 +235,7 @@ class PH7Tpl extends Kernel
      */
     public function setCaching($bCaching)
     {
-        $this->bCaching = (bool) $bCaching;
+        $this->bCaching = (bool)$bCaching;
     }
 
     /**
@@ -205,7 +245,7 @@ class PH7Tpl extends Kernel
      */
     public function isEnableCache()
     {
-        return (bool) $this->bCaching;
+        return $this->bCaching;
     }
 
     /**
@@ -251,10 +291,10 @@ class PH7Tpl extends Kernel
      *
      * @return void
      */
-     public function setXmlSyntax($bIsActive)
-     {
-         $this->bXmlTags = (bool) $bIsActive;
-     }
+    public function setXmlSyntax($bIsActive)
+    {
+        $this->bXmlTags = (bool)$bIsActive;
+    }
 
     /**
      * Adds a variable that can be used by the templates.
@@ -300,105 +340,6 @@ class PH7Tpl extends Kernel
     }
 
     /**
-     * Compiler template.
-     *
-     * @return boolean
-     *
-     * @throws TplException If the template file could not be recovered or cannot be written.
-     */
-    final private function compile()
-    {
-        // Create compile folder
-        $this->file->createDir($this->sCompileDir2);
-
-        if (!$this->sCode = $this->file->getFile($this->sTemplateDirFile)) {
-            throw new TplException('Template Fetch Error: \'' . $this->sTemplateDirFile . '\'');
-        }
-
-        // Parser the predefined variables
-        $this->sCode = (new Predefined\Variable($this->sCode))->assign()->get();
-
-        // Parser the predefined template functions
-        $this->sCode = (new Predefined\Func($this->sCode))->assign()->get();
-
-        // Parser the language constructs
-        $this->parse();
-
-        $sPhpHeader = $this->getHeaderContents();
-
-        // Check if the "$design" variable is actually part of the \PH7\Framework\Layout\Html\Design class
-        if (!$this->checkDesignInstance()) {
-            $this->setErrMsg();
-        }
-
-        if ($this->isMainCompilePage()) {
-            if (!$this->bLicense) {
-                $this->sCode = preg_replace('#<title>(.*?)</title>#is', '<title>$1 (<?php echo t(\'Powered by\') ?>' . ' ' . self::SOFTWARE_NAME . ')</title>', $this->sCode);
-            }
-
-            // It is forbidden to violate the copyright!
-            // Thought for me who has spent years for developing a professional, high-quality software and done their best to help developers!
-            if (!$this->isMarkCopyright()) {
-                $this->setErrMsg();
-            }
-        }
-
-        if ($this->isXmlSitemapCompilePage() && !$this->isSmallMarkCopyright()) {
-            $this->setErrMsg();
-        }
-
-        if ($this->bPhpCompressor)
-            $this->sCode = (new Compress)->parsePhp($this->sCode);
-
-        $this->sCode = '<?php ' . $sPhpHeader . '?>' . $this->sCode;
-
-        if ($rHandle = @fopen($this->sCompileDirFile, 'wb')) {
-            fwrite($rHandle, $this->sCode);
-            fclose($rHandle);
-            return true;
-        }
-
-        throw new TplException('Could not write compiled file: \'' . $this->sCompileDirFile . '\'');
-        return false;
-    }
-
-    /**
-     * Parse the general code for translating the template language.
-     *
-     * @return void
-     */
-    private function parse()
-    {
-        /***** Includes *****/
-        $this->sCode = str_replace('{auto_include}', '<?php $this->display($this->getCurrentController() . PH7_DS . $this->registry->action . \'' .
-            $this->sTplExt . '\', $this->registry->path_module_views . PH7_TPL_MOD_NAME . PH7_DS); ?>', $this->sCode);
-        $this->sCode = preg_replace('#{include ([^\{\}\n]+)}#', '<?php $this->display($1); ?>', $this->sCode);
-        $this->sCode = preg_replace('#{main_include ([^\{\}\n]+)}#', '<?php $this->display($1, PH7_PATH_TPL . PH7_TPL_NAME . PH7_DS); ?>', $this->sCode);
-        $this->sCode = preg_replace('#{def_main_auto_include}#', '<?php $this->display(\'' . $this->sTplFile . '\', PH7_PATH_TPL . PH7_DEFAULT_THEME . PH7_DS); ?>', $this->sCode);
-        $this->sCode = preg_replace('#{def_main_include ([^\{\}\n]+)}#', '<?php $this->display($1, PH7_PATH_TPL . PH7_DEFAULT_THEME . PH7_DS); ?>', $this->sCode);
-        $this->sCode = preg_replace('#{manual_include ([^\{\}\n]+)}#', '<?php $this->display($this->getCurrentController() . PH7_DS . $1, $this->registry->path_module_views . PH7_TPL_MOD_NAME . PH7_DS); ?>', $this->sCode);
-
-        /***** Objects *****/
-        $this->sCode = str_replace(array('$browser->', '$designModel->'), array('$this->browser->', '$this->designModel->'), $this->sCode);
-
-        /***** CLassic Syntax *****/
-        $this->classicSyntax();
-
-        /***** XML Syntax *****/
-        if ($this->bXmlTags)
-            $this->xmlSyntax();
-
-        /***** Variables *****/
-        $this->sCode = preg_replace('#{([a-z0-9_]+)}#i', '<?php echo $$1; ?>', $this->sCode);
-
-        /***** Clears comments {* comment *} *****/
-        $this->sCode = preg_replace('#{\*.+\*}#isU', null, $this->sCode);
-
-        /***** Code optimization *****/
-        $this->optimization();
-    }
-
-    /**
      * Display template.
      *
      * @param string $sTplFile Default NULL
@@ -429,36 +370,32 @@ class PH7Tpl extends Kernel
             $this->sCompileDir2 = $this->sCompileDir . $this->registry->module . '_' . md5($this->registry->path_module) . PH7_DS . PH7_TPL_MOD_NAME . PH7_DS . $this->getCurrentController();
         }
 
-        $this->sCompileDirFile = ($this->isMainDir($sDirPath)) ? $this->sCompileDir2 . $this->file->getFileWithoutExt($this->sTplFile) . static::COMPILE_FILE_EXT : $this->sCompileDir2 .
-                str_replace($this->getCurrentController(), '', $this->file->getFileWithoutExt($this->sTplFile)) . static::COMPILE_FILE_EXT;
+        $this->sCompileDirFile = ($this->isMainDir($sDirPath) ? $this->sCompileDir2 . $this->file->getFileWithoutExt($this->sTplFile) . static::COMPILE_FILE_EXT : $this->sCompileDir2) .
+            str_replace($this->getCurrentController(), '', $this->file->getFileWithoutExt($this->sTplFile)) . static::COMPILE_FILE_EXT;
 
         if (!$this->file->existFile($this->sTemplateDirFile)) {
-            throw new TplException('File \'' . $this->sTemplateDirFile . '\' does no exist');
+            throw new TplException(
+                sprintf('%s file does no exist.', $this->sTemplateDirFile)
+            );
         }
 
 
         /*** If the file does not exist or if the template has been modified, recompile the makefiles ***/
-        if ($this->file->getModifTime($this->sTemplateDirFile) > $this->file->
-                        getModifTime($this->sCompileDirFile)) {
+        if ($this->file->getModifTime($this->sTemplateDirFile) > $this->file->getModifTime($this->sCompileDirFile)) {
             $this->compile();
         }
 
         if (!empty($_bInclude)) {
-            $bCaching = (bool) $this->config->values['cache']['enable.html.tpl.cache'];
+            $bCaching = (bool)$this->config->values['cache']['enable.html.tpl.cache'];
 
-            if ($this->isEnableCache() === true && $bCaching === true && !$this->isMainCompilePage())
-            {
+            if ($this->isEnableCache() === true && $bCaching === true && !$this->isMainCompilePage()) {
                 $this->cache();
-            }
-            else
-            {
+            } else {
                 // Extraction Variables
                 extract($this->_aVars);
                 require $this->sCompileDirFile;
             }
-        }
-        else
-        {
+        } else {
             return $this->sCompileDirFile;
         }
     }
@@ -483,7 +420,9 @@ class PH7Tpl extends Kernel
         }
 
         if (!$sCode = $this->file->getFile($sMailTplFile)) {
-            throw new TplException('Can\'t open file: \'' . $sMailTplFile . '\'');
+            throw new TplException(
+                sprintf('Cannot open "%s" file.', $sMailTplFile)
+            );
         }
 
         /***** Other variables in file "/framework/Parse/SysVar.class.php" with syntax %var% *****/
@@ -570,15 +509,16 @@ class PH7Tpl extends Kernel
      *
      * @param string $sName Variable name
      * @param mixed $mValue (string, object, array, integer, ...) Value Variable
-     * @param boolean $bEscape Specify "true" if you want to protect your variables against XSS. Default value is "false"
-     * @param boolean $bEscapeStrip If you use escape method, you can also set this parameter to "true" to strip HTML and PHP tags from a string. Default value is "false"
+     * @param boolean $bEscape Specify "true" if you want to protect your variables against XSS.
+     * @param boolean $bEscapeStrip If you use escape method, you can also set this parameter to "true" to strip HTML and PHP tags from a string.
      *
      * @return void
      */
     public function assign($sName, $mValue, $bEscape = false, $bEscapeStrip = false)
     {
-        if ($bEscape === true)
+        if ($bEscape === true) {
             $mValue = $this->str->escape($mValue, $bEscapeStrip);
+        }
 
         $this->_aVars[$sName] = $mValue;
     }
@@ -589,15 +529,16 @@ class PH7Tpl extends Kernel
      * @see assign()
      *
      * @param array $aVars
-     * @param boolean $bEscape Specify "true" if you want to protect your variables against XSS. Default value is "false"
-     * @param boolean $bEscapeStrip If you use escape method, you can also set this parameter to "true" to strip HTML and PHP tags from a string. Default value is "false"
+     * @param boolean $bEscape Specify TRUE if you want to protect your variables against XSS.
+     * @param boolean $bEscapeStrip If you use escape method, you can also set this parameter to "true" to strip HTML and PHP tags from a string.
      *
      * @return void
      */
     public function assigns(array $aVars, $bEscape = false, $bEscapeStrip = false)
     {
-        foreach ($aVars as $sKey => $sValue)
+        foreach ($aVars as $sKey => $sValue) {
             $this->assign($sKey, $sValue, $bEscape = false, $bEscapeStrip = false); // Assign a string variable
+        }
     }
 
     /**
@@ -625,30 +566,41 @@ class PH7Tpl extends Kernel
     }
 
     /**
-     * Checks if the compile directory has been defined otherwise we create a default directory.
+     * Get the reserved variables.
      *
-     * If the folder compile does not exist, it creates a folder.
-     *
-     * @return self
+     * @return array
      */
-    private function checkCompileDir()
+    public function getReservedWords()
     {
-        $this->sCompileDir = (empty($this->sCompileDir)) ? PH7_PATH_CACHE . static::COMPILE_DIR . PH7_DS : $this->sCompileDir;
-
-        return $this;
+        return self::RESERVED_WORDS;
     }
 
     /**
-     * Checks if the cache directory has been defined otherwise we create a default directory.
-     * If the folder cache does not exist, it creates a folder.
+     * Get the header content to put in the file.
      *
-     * @return self
+     * @return string
      */
-    private function checkCacheDir()
+    final public function getHeaderContents()
     {
-        $this->sCacheDir = (empty($this->sCacheDir)) ? PH7_PATH_CACHE . static::CACHE_DIR . PH7_DS : $this->sCacheDir;
-
-        return $this;
+        return '
+namespace PH7;
+defined(\'PH7\') or exit(\'Restricted access\');
+/*
+Created on ' . gmdate(self::DATETIME_FORMAT) . '
+Compiled file from: ' . $this->sTemplateDirFile . '
+Template Engine: ' . self::NAME . ' version ' . self::VERSION . ' by ' . self::AUTHOR . '
+*/
+/***************************************************************************
+ *     ' . self::SOFTWARE_NAME . ' ' . self::SOFTWARE_COMPANY . '
+ *               --------------------
+ * @since      Mon Mar 21 2011
+ * @author     SORIA Pierre-Henry
+ * @email      ' . self::SOFTWARE_EMAIL . '
+ * @link       ' . self::SOFTWARE_WEBSITE . '
+ * @copyright  ' . sprintf(self::SOFTWARE_COPYRIGHT, date('Y')) . '
+ * @license    ' . self::LICENSE . '
+ ***************************************************************************/
+';
     }
 
     /**
@@ -666,6 +618,8 @@ class PH7Tpl extends Kernel
      *
      * @return void
      *
+     * @throws Exception
+     * @throws \PH7\Framework\File\Permission\PermissionException
      * @throws TplException If the cache file could not be written.
      */
     protected function cache()
@@ -673,15 +627,12 @@ class PH7Tpl extends Kernel
         // Create cache folder
         $this->file->createDir($this->sCacheDir);
 
-        $this->sCacheDir2 = $this->sCacheDir . $this->registry->module . '_' . md5($this->
-                        registry->path_module) . PH7_DS . PH7_TPL_MOD_NAME . PH7_DS . PH7_LANG_NAME . PH7_DS . $this->getCurrentController() . PH7_DS;
+        $this->sCacheDir2 = $this->sCacheDir . PH7_TPL_NAME . PH7_DS . $this->registry->module . '_' . md5($this->
+            registry->path_module) . PH7_DS . PH7_TPL_MOD_NAME . PH7_DS . PH7_LANG_NAME . PH7_DS . $this->getCurrentController() . PH7_DS;
         $this->file->createDir($this->sCacheDir2);
         $this->sCacheDirFile = $this->sCacheDir2 . str_replace(PH7_DS, '_', $this->file->getFileWithoutExt($this->sTplFile)) . '.cache.html';
 
-        // If the cache has expired
-        if ($this->file->getModifTime($this->sCompileDirFile) > $this->file->getModifTime($this->sCacheDirFile) || (!empty($this->mCacheExpire) && $this->
-                file->getModifTime($this->sCacheDirFile) < time() - $this->mCacheExpire))
-        {
+        if ($this->hasCacheExpired()) {
             ob_start();
 
             // Extraction Variables
@@ -691,11 +642,14 @@ class PH7Tpl extends Kernel
             $sOutput = ob_get_contents();
             ob_end_clean();
 
-            if ($this->bHtmlCompressor)
+            if ($this->bHtmlCompressor) {
                 $sOutput = (new Compress)->parseHtml($sOutput);
+            }
 
             if (!$this->file->putFile($this->sCacheDirFile, $sOutput)) {
-                throw new TplException('Unable to write to cache file: \'' . $this->sCacheDirFile . '\'');
+                throw new TplException(
+                    sprintf('Unable to write HTML cached file "%s"', $this->sCacheDirFile)
+                );
             }
 
             echo $sOutput;
@@ -716,9 +670,9 @@ class PH7Tpl extends Kernel
 
         /***** ?> *****/
         if (!preg_match('#(;[\s]+}} | ;[\s]+%})#', $this->sCode)) {
-            $this->sCode = str_replace(array('}}', '%}'), ';?>', $this->sCode);
+            $this->sCode = str_replace(['}}', '%}'], ';?>', $this->sCode);
         } else {
-            $this->sCode = str_replace(array('}}', '%}'), '?>', $this->sCode);
+            $this->sCode = str_replace(['}}', '%}'], '?>', $this->sCode);
         }
 
         /***** <?php echo *****/
@@ -736,7 +690,11 @@ class PH7Tpl extends Kernel
         /***** for *****/
         /*** Example ***/
         /* {for $sData in $aData} <p>Total items: {% $sData_total %} /><br /> Number: {% $sData_i %}<br /> Name: {% $sData %}</p> {/for} */
-        $this->sCode = preg_replace('#{for ([^\{\}\n]+) in ([^\{\}\n]+)}#', '<?php for($1_i=0,$1_total=count($2);$1_i<$1_total;$1_i++) { $1=$2[$1_i]; ?>', $this->sCode);
+        $this->sCode = preg_replace(
+            '#{for ([^\{\}\n]+) in ([^\{\}\n]+)}#',
+            '<?php for($1_i=0,$1_total=count($2);$1_i<$1_total;$1_i++) { $1=$2[$1_i]; ?>',
+            $this->sCode
+        );
 
         /***** while *****/
         $this->sCode = preg_replace('#{while ([^\{\}\n]+)}#', '<?php while($1) { ?>', $this->sCode);
@@ -745,7 +703,7 @@ class PH7Tpl extends Kernel
         $this->sCode = preg_replace('#{each ([^\{\}\n]+) in ([^\{\}\n]+)}#', '<?php foreach($2 as $1) { ?>', $this->sCode);
 
         /***** endif | endfor | endwhile | endforeach *****/
-        $this->sCode = str_replace(array('{/if}', '{/for}', '{/while}', '{/each}'), '<?php } ?>', $this->sCode);
+        $this->sCode = str_replace(['{/if}', '{/for}', '{/while}', '{/each}'], '<?php } ?>', $this->sCode);
 
         /***** Escape (htmlspecialchars) *****/
         $this->sCode = preg_replace('#{escape ([^\{\}]+)}#', '<?php $this->str->escape($1); ?>', $this->sCode);
@@ -769,10 +727,11 @@ class PH7Tpl extends Kernel
         $this->sCode = str_replace('<ph:code>', '<?php ', $this->sCode);
 
         /***** ?> *****/
-        if (!preg_match('#;[\s]+</ph:code>$#', $this->sCode))
+        if (!preg_match('#;[\s]+</ph:code>$#', $this->sCode)) {
             $this->sCode = str_replace('</ph:code>', ';?>', $this->sCode);
-        else
+        } else {
             $this->sCode = str_replace('</ph:code>', '?>', $this->sCode);
+        }
 
         /***** <?php ?> *****/
         $this->sCode = preg_replace('#<ph:code value=(?:"|\')(.+)(?:"|\') ?/?>#', '<?php $1 ?>', $this->sCode);
@@ -790,8 +749,11 @@ class PH7Tpl extends Kernel
         $this->sCode = preg_replace('#<ph:if-empty test=(?:"|\')([^\<\>"\n]+)(?:"|\')>#', '<?php if(empty($1)) { ?>', $this->sCode);
 
         /***** if equal *****/
-        $this->sCode = preg_replace('#<ph:if-equal test=(?:"|\')([^\{\},"\n]+)(?:"|\'),(?:"|\')([^\{\},"\n]+)(?:"|\')>#', '<?php if($1 == $2) { ?>', $this->sCode);
-
+        $this->sCode = preg_replace(
+            '#<ph:if-equal test=(?:"|\')([^\{\},"\n]+)(?:"|\'),(?:"|\')([^\{\},"\n]+)(?:"|\')>#',
+            '<?php if($1 == $2) { ?>',
+            $this->sCode
+        );
 
         /***** elseif *****/
         $this->sCode = preg_replace('#<ph:else-if test=(?:"|\')([^\<\>"\n]+)(?:"|\')>#', '<?php elseif($1) { ?>', $this->sCode);
@@ -802,19 +764,35 @@ class PH7Tpl extends Kernel
         /***** for *****/
         /*** Example ***/
         /* <ph:for test="$sData in $aData"> <p>Total items: <ph:print value="$sData_total" /><br /> Number: <ph:print value="$sData_i" /><br /> Name: <ph:print value="$sData" /></p> </ph:for> */
-        $this->sCode = preg_replace('#<ph:for test=(?:"|\')([^\<\>"\n]+) in ([^\<\>"\n]+)(?:"|\')>#', '<?php for($1_i=0,$1_total=count($2);$1_i<$1_total;$1_i++) { $1=$2[$1_i]; ?>', $this->sCode);
+        $this->sCode = preg_replace(
+            '#<ph:for test=(?:"|\')([^\<\>"\n]+) in ([^\<\>"\n]+)(?:"|\')>#',
+            '<?php for($1_i=0,$1_total=count($2);$1_i<$1_total;$1_i++) { $1=$2[$1_i]; ?>',
+            $this->sCode
+        );
 
         /***** while *****/
         $this->sCode = preg_replace('#<ph:while test=(?:"|\')([^\<\>"\n]+)(?:"|\')>#', '<?php while($1) { ?>', $this->sCode);
 
         /***** each (foreach) *****/
-        $this->sCode = preg_replace('#<ph:each test=(?:"|\')([^\<\>"\n]+) in ([^\<\>"\n]+)(?:"|\')>#', '<?php foreach($2 as $1) { ?>', $this->sCode);
+        $this->sCode = preg_replace(
+            '#<ph:each test=(?:"|\')([^\<\>"\n]+) in ([^\<\>"\n]+)(?:"|\')>#',
+            '<?php foreach($2 as $1) { ?>',
+            $this->sCode
+        );
 
         /***** endif | endfor | endwhile | endforeach *****/
-        $this->sCode = str_replace(array('</ph:if>', '</ph:else>', '</ph:else-if>', '</ph:for>', '</ph:while>', '</ph:each>', '</ph:if-set>', '</ph:if-empty>', '</ph:if-equal>'), '<?php } ?>', $this->sCode);
+        $this->sCode = str_replace(
+            ['</ph:if>', '</ph:else>', '</ph:else-if>', '</ph:for>', '</ph:while>', '</ph:each>', '</ph:if-set>', '</ph:if-empty>', '</ph:if-equal>'],
+            '<?php } ?>',
+            $this->sCode
+        );
 
         /***** Escape (htmlspecialchars) *****/
-        $this->sCode = preg_replace('#<ph:escape value=(?:"|\')([^\{\}]+)(?:"|\') ?/?>#', '<?php this->str->escape($1); ?>', $this->sCode);
+        $this->sCode = preg_replace(
+            '#<ph:escape value=(?:"|\')([^\{\}]+)(?:"|\') ?/?>#',
+            '<?php this->str->escape($1); ?>',
+            $this->sCode
+        );
 
         /***** Translate (Gettext) *****/
         $this->sCode = preg_replace('#<ph:lang value=(?:"|\')([^\{\}]+)(?:"|\') ?/?>#', '<?php echo t($1); ?>', $this->sCode);
@@ -825,23 +803,13 @@ class PH7Tpl extends Kernel
     }
 
     /**
-     * Get the reserved variables.
-     *
-     * @return array
-     */
-    public function getReservedWords()
-    {
-        return ['auto_include', 'def_main_auto_include', 'else', 'literal', 'lang'];
-    }
-
-    /**
      * Optimizes the code generated by the compiler php template.
      *
      * @return void
      */
     protected function optimization()
     {
-        $this->sCode = preg_replace(array('#[\t\r\n];?\?>#s', '#\?>[\t\r\n]+?<\?(php)?#si'), '', $this->sCode);
+        $this->sCode = preg_replace(['#[\t\r\n];?\?>#s', '#\?>[\t\r\n]+?<\?(php)?#si'], '', $this->sCode);
         $this->sCode = preg_replace('#;{2,}#s', ';', $this->sCode);
     }
 
@@ -856,31 +824,129 @@ class PH7Tpl extends Kernel
     }
 
     /**
-     * Get the header content to put in the file.
+     * Compiler template.
      *
-     * @return string
+     * @return boolean
+     *
+     * @throws TplException If the template file could not be recovered or cannot be written.
      */
-    final protected function getHeaderContents()
+    final private function compile()
     {
-        return '
-namespace PH7;
-defined(\'PH7\') or exit(\'Restricted access\');
-/*
-Created on ' . gmdate('Y-m-d H:i:s') . '
-Compiled file from: ' . $this->sTemplateDirFile . '
-Template Engine: ' . self::NAME . ' version ' . self::VERSION . ' by ' . self::AUTHOR . '
-*/
-/***************************************************************************
- *     ' . self::SOFTWARE_NAME . ' ' . self::SOFTWARE_COMPANY . '
- *               --------------------
- * @since      Mon Mar 21 2011
- * @author     SORIA Pierre-Henry
- * @email      ' . self::SOFTWARE_EMAIL . '
- * @link       ' . self::SOFTWARE_WEBSITE . '
- * @copyright  ' . self::SOFTWARE_COPYRIGHT . '
- * @license    ' . self::LICENSE . '
- ***************************************************************************/
-';
+        // Create compile folder
+        $this->file->createDir($this->sCompileDir2);
+
+        if (!$this->sCode = $this->file->getFile($this->sTemplateDirFile)) {
+            throw new TplException(
+                sprintf('Impossible to fetch template file "%s"', $this->sTemplateDirFile)
+            );
+        }
+
+        // Parser the predefined variables
+        $this->sCode = (new Predefined\Variable($this->sCode))->assign()->get();
+
+        // Parser the predefined template functions
+        $this->sCode = (new Predefined\Func($this->sCode))->assign()->get();
+
+        // Parser the language constructs
+        $this->parse();
+
+        $sPhpHeader = $this->getHeaderContents();
+
+        // Check if the "$design" variable is actually part of the \PH7\Framework\Layout\Html\Design class
+        if (!$this->checkDesignInstance()) {
+            $this->setErrMsg();
+        }
+
+        if ($this->isMainCompilePage()) {
+            // It is forbidden to violate the copyright!
+            // Think to me, who has spent years to develop a professional, high-quality software and done my best to help other developers!
+            if (!$this->isMarkCopyright()) {
+                $this->setErrMsg();
+            }
+        }
+
+        if ($this->isXmlSitemapCompilePage() && !$this->isSmallMarkCopyright()) {
+            $this->setErrMsg();
+        }
+
+        if ($this->bPhpCompressor) {
+            $this->sCode = (new Compress)->parsePhp($this->sCode);
+        }
+
+        $this->sCode = '<?php ' . $sPhpHeader . '?>' . $this->sCode;
+
+        if ($rHandle = @fopen($this->sCompileDirFile, 'wb')) {
+            fwrite($rHandle, $this->sCode);
+            fclose($rHandle);
+            return true;
+        }
+
+        throw new TplException(
+            sprintf('Could not write template compiled file "%s"', $this->sCompileDirFile)
+        );
+    }
+
+    /**
+     * Parse the general code for translating the template language.
+     *
+     * @return void
+     */
+    private function parse()
+    {
+        /***** Includes *****/
+        $this->sCode = str_replace(
+            '{auto_include}',
+            '<?php $this->display($this->getCurrentController() . PH7_DS . $this->registry->action . \'' . $this->sTplExt . '\', $this->registry->path_module_views . PH7_TPL_MOD_NAME . PH7_DS); ?>',
+            $this->sCode
+        );
+        $this->sCode = preg_replace(
+            '#{include ([^\{\}\n]+)}#',
+            '<?php $this->display($1); ?>',
+            $this->sCode
+        );
+        $this->sCode = preg_replace(
+            '#{main_include ([^\{\}\n]+)}#',
+            '<?php $this->display($1, PH7_PATH_TPL . PH7_TPL_NAME . PH7_DS); ?>',
+            $this->sCode
+        );
+        $this->sCode = preg_replace(
+            '#{def_main_auto_include}#',
+            '<?php $this->display(\'' . $this->sTplFile . '\', PH7_PATH_TPL . PH7_DEFAULT_THEME . PH7_DS); ?>',
+            $this->sCode
+        );
+        $this->sCode = preg_replace(
+            '#{def_main_include ([^\{\}\n]+)}#',
+            '<?php $this->display($1, PH7_PATH_TPL . PH7_DEFAULT_THEME . PH7_DS); ?>',
+            $this->sCode
+        );
+        $this->sCode = preg_replace(
+            '#{manual_include ([^\{\}\n]+)}#',
+            '<?php $this->display($this->getCurrentController() . PH7_DS . $1, $this->registry->path_module_views . PH7_TPL_MOD_NAME . PH7_DS); ?>',
+            $this->sCode
+        );
+
+        /***** Objects *****/
+        $this->sCode = str_replace(['$browser->', '$designModel->'],
+            ['$this->browser->', '$this->designModel->'],
+            $this->sCode
+        );
+
+        /***** CLassic Syntax *****/
+        $this->classicSyntax();
+
+        /***** XML Syntax *****/
+        if ($this->bXmlTags) {
+            $this->xmlSyntax();
+        }
+
+        /***** Variables *****/
+        $this->sCode = preg_replace('#{([a-z0-9_]+)}#i', '<?php echo $$1; ?>', $this->sCode);
+
+        /***** Clears comments {* comment *} *****/
+        $this->sCode = preg_replace('#{\*.+\*}#isU', null, $this->sCode);
+
+        /***** Code optimization *****/
+        $this->optimization();
     }
 
     /**
@@ -900,7 +966,10 @@ Template Engine: ' . self::NAME . ' version ' . self::VERSION . ' by ' . self::A
      */
     final private function isMainCompilePage()
     {
-        return preg_match('#' . $this->addSlashes($this->sCompileDir . static::MAIN_COMPILE_DIR . PH7_DS . PH7_TPL_NAME . PH7_DS . static::MAIN_COMPILE_PAGE) . '#', $this->sCompileDirFile);
+        return preg_match(
+            '#' . $this->addSlashes($this->sCompileDir . static::MAIN_COMPILE_DIR . PH7_DS . PH7_TPL_NAME . PH7_DS . static::MAIN_COMPILE_PAGE) . '#',
+            $this->sCompileDirFile
+        );
     }
 
     /**
@@ -942,17 +1011,12 @@ Template Engine: ' . self::NAME . ' version ' . self::VERSION . ' by ' . self::A
      */
     final private function isMarkCopyright()
     {
-        // Skip this step if it's not the base template (because there is no "smartLink()" and "link()" in layout.tpl of other templates as it includes the "base" one)
+        // Skip this step if it's not the base template (because there is no "link()" in layout.tpl of other templates as it includes the "base" one)
         if ($this->notBaseTheme()) {
             return true;
         }
 
-        // "design->smartLink()" can never be removed.
-        if (false === strpos($this->sCode, 'design->smartLink()')) {
-            return false;
-        }
-
-        // "design->link()" can never be removed. Copyright notices won't be displayed if you bought a license
+        // "design->link()" can never be removed
         return false !== strpos($this->sCode, 'design->link()');
     }
 
@@ -978,6 +1042,15 @@ Template Engine: ' . self::NAME . ' version ' . self::VERSION . ' by ' . self::A
     }
 
     /**
+     * @return bool Returns TRUE if the cache has expired, FALSE otherwise.
+     */
+    private function hasCacheExpired()
+    {
+        return $this->file->getModifTime($this->sCompileDirFile) > $this->file->getModifTime($this->sCacheDirFile) ||
+            (!empty($this->mCacheExpire) && $this->file->getModifTime($this->sCacheDirFile) < time() - $this->mCacheExpire);
+    }
+
+    /**
      * Add slashes to avoid errors with "preg_replace()" with Windows' backslashes in directories.
      *
      * @param string $sStr
@@ -990,39 +1063,44 @@ Template Engine: ' . self::NAME . ' version ' . self::VERSION . ' by ' . self::A
     }
 
     /**
+     * Checks if the compile directory has been defined otherwise we create a default directory.
+     *
+     * If the folder compile does not exist, it creates a folder.
+     *
+     * @return self
+     */
+    private function checkCompileDir()
+    {
+        $this->sCompileDir = empty($this->sCompileDir) ? PH7_PATH_CACHE . static::COMPILE_DIR . PH7_DS : $this->sCompileDir;
+
+        return $this;
+    }
+
+    /**
+     * Checks if the cache directory has been defined otherwise we create a default directory.
+     * If the folder cache does not exist, it creates a folder.
+     *
+     * @return self
+     */
+    private function checkCacheDir()
+    {
+        $this->sCacheDir = empty($this->sCacheDir) ? PH7_PATH_CACHE . static::CACHE_DIR . PH7_DS : $this->sCacheDir;
+
+        return $this;
+    }
+
+    /**
      * Set the error message.
      *
      * @return void
      */
     final private function setErrMsg()
     {
-        $this->sCode = static::ERR_MSG;
+        $this->sCode = sprintf(static::ERR_MSG, self::SOFTWARE_EMAIL);
     }
 
     public function __destruct()
     {
         $this->clean();
-
-        parent::__destruct();
-        unset(
-          $this->designModel,
-          $this->sTplFile,
-          $this->bLicense,
-          $this->sTemplateDir,
-          $this->sCompileDir,
-          $this->sCompileDir2,
-          $this->sCacheDir,
-          $this->sCacheDir2,
-          $this->sCode,
-          $this->sTemplateDirFile,
-          $this->sCompileDirFile,
-          $this->sCacheDirFile,
-          $this->sTplExt,
-          $this->bCaching,
-          $this->bHtmlCompressor,
-          $this->bPhpCompressor,
-          $this->mCacheExpire,
-          $this->bXmlTags
-        );
     }
 }

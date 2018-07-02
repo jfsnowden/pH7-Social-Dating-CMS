@@ -1,7 +1,7 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Core / Model
  */
@@ -15,25 +15,26 @@ use PH7\Framework\Mvc\Model\Engine\Util\Various;
 class AdminCoreModel extends UserCoreModel
 {
     const CACHE_GROUP = 'db/sys/mod/admin';
+    const CACHE_TIME = 10368000;
 
     /**
      * @param int $iOffset
      * @param int $iLimit
      * @param string $sTable
      *
-     * @return \stdClass
+     * @return array
      */
-    public function browse($iOffset, $iLimit, $sTable = 'Members')
+    public function browse($iOffset, $iLimit, $sTable = DbTableName::MEMBER)
     {
         Various::checkModelTable($sTable);
 
         $iOffset = (int)$iOffset;
         $iLimit = (int)$iLimit;
 
-        if ($sTable !== 'Members') {
+        if ($sTable !== DbTableName::MEMBER) {
             $sSql = 'SELECT * FROM' . Db::prefix($sTable) . 'WHERE username <> \'' . PH7_GHOST_USERNAME . '\' ORDER BY joinDate DESC LIMIT :offset, :limit';
         } else {
-            $sSql = 'SELECT m.*, g.name AS membershipName FROM' . Db::prefix($sTable) . 'AS m INNER JOIN ' . Db::prefix('Memberships') . 'AS g ON m.groupId = g.groupId LEFT JOIN' . Db::prefix('MembersInfo') . 'AS i ON m.profileId = i.profileId WHERE username <> \'' . PH7_GHOST_USERNAME . '\' ORDER BY joinDate DESC LIMIT :offset, :limit';
+            $sSql = 'SELECT m.*, g.name AS membershipName FROM' . Db::prefix($sTable) . 'AS m INNER JOIN ' . Db::prefix(DbTableName::MEMBERSHIP) . 'AS g ON m.groupId = g.groupId LEFT JOIN' . Db::prefix(DbTableName::MEMBER_INFO) . 'AS i ON m.profileId = i.profileId WHERE username <> \'' . PH7_GHOST_USERNAME . '\' ORDER BY joinDate DESC LIMIT :offset, :limit';
         }
 
         $rStmt = Db::getInstance()->prepare($sSql);
@@ -55,7 +56,7 @@ class AdminCoreModel extends UserCoreModel
      * @param int $iOffset
      * @param int $iLimit
      *
-     * @return int|\stdClass
+     * @return int|array
      */
     public function searchUser($mWhat, $sWhere, $iGroupId, $iBanned, $bCount, $sOrderBy, $iSort, $iOffset, $iLimit)
     {
@@ -67,7 +68,7 @@ class AdminCoreModel extends UserCoreModel
         $sSqlLimit = (!$bCount) ? ' LIMIT :offset, :limit' : '';
         $sSqlSelect = (!$bCount) ? 'm.*, g.name AS membershipName' : 'COUNT(m.profileId) AS totalUsers';
 
-        $sSqlQuery = (!empty($iBanned)) ? '(ban = 1) AND ' : '';
+        $sSqlQuery = !empty($iBanned) ? '(ban = 1) AND ' : '';
         if ($sWhere === 'all') {
             $sSqlQuery .= '(m.username LIKE :what OR m.email LIKE :what OR m.firstName LIKE :what OR m.lastName LIKE :what OR m.ip LIKE :what)';
         } else {
@@ -76,7 +77,7 @@ class AdminCoreModel extends UserCoreModel
 
         $sSqlOrder = SearchCoreModel::order($sOrderBy, $iSort);
 
-        $rStmt = Db::getInstance()->prepare('SELECT ' . $sSqlSelect . ' FROM' . Db::prefix('Members') . 'AS m INNER JOIN ' . Db::prefix('Memberships') . 'AS g ON m.groupId = g.groupId LEFT JOIN' . Db::prefix('MembersInfo') . 'AS i ON m.profileId = i.profileId WHERE (username <> \'' . PH7_GHOST_USERNAME . '\') AND (m.groupId = :groupId) AND ' . $sSqlQuery . $sSqlOrder . $sSqlLimit);
+        $rStmt = Db::getInstance()->prepare('SELECT ' . $sSqlSelect . ' FROM' . Db::prefix(DbTableName::MEMBER) . 'AS m INNER JOIN ' . Db::prefix(DbTableName::MEMBERSHIP) . 'AS g ON m.groupId = g.groupId LEFT JOIN' . Db::prefix(DbTableName::MEMBER_INFO) . 'AS i ON m.profileId = i.profileId WHERE (username <> \'' . PH7_GHOST_USERNAME . '\') AND (m.groupId = :groupId) AND ' . $sSqlQuery . $sSqlOrder . $sSqlLimit);
 
         $rStmt->bindValue(':what', '%' . $mWhat . '%', \PDO::PARAM_STR);
         $rStmt->bindParam(':groupId', $iGroupId, \PDO::PARAM_INT);
@@ -89,14 +90,15 @@ class AdminCoreModel extends UserCoreModel
         $rStmt->execute();
 
         if (!$bCount) {
-            $oRow = $rStmt->fetchAll(\PDO::FETCH_OBJ);
+            $aRow = $rStmt->fetchAll(\PDO::FETCH_OBJ);
             Db::free($rStmt);
-            return $oRow;
-        } else {
-            $oRow = $rStmt->fetch(\PDO::FETCH_OBJ);
-            Db::free($rStmt);
-            return (int)$oRow->totalUsers;
+            return $aRow;
         }
+
+        $oRow = $rStmt->fetch(\PDO::FETCH_OBJ);
+        Db::free($rStmt);
+
+        return (int)$oRow->totalUsers;
     }
 
     /**
@@ -106,7 +108,7 @@ class AdminCoreModel extends UserCoreModel
      *
      * @return bool
      */
-    public function ban($iProfileId, $iBan, $sTable = 'Members')
+    public function ban($iProfileId, $iBan, $sTable = DbTableName::MEMBER)
     {
         Various::checkModelTable($sTable);
 
@@ -127,10 +129,10 @@ class AdminCoreModel extends UserCoreModel
      */
     public function getRootIp()
     {
-        $this->cache->start(self::CACHE_GROUP, 'rootip', 10368000);
+        $this->cache->start(self::CACHE_GROUP, 'rootip', static::CACHE_TIME);
 
         if (!$sIp = $this->cache->get()) {
-            $sIp = $this->orm->getOne('Admins', 'profileId', 1, 'ip')->ip;
+            $sIp = $this->orm->getOne(DbTableName::ADMIN, 'profileId', 1, 'ip')->ip;
             $this->cache->put($sIp);
         }
 

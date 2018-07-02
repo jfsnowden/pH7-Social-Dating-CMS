@@ -1,7 +1,7 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Core / Class
  */
@@ -23,10 +23,11 @@ class Security
      * @param string $sIp IP address
      * @param string $sTo Email address of the user to send the message.
      * @param PH7Tpl $oView
-     * @param string $sTable Default 'Members'
+     * @param string $sTable Default DbTableName::MEMBER
+     *
      * @return void
      */
-    public function sendAlertLoginAttemptsExceeded($iMaxAttempts, $iAttemptTime, $sIp, $sTo, PH7Tpl $oView, $sTable = 'Members')
+    public function sendAlertLoginAttemptsExceeded($iMaxAttempts, $iAttemptTime, $sIp, $sTo, PH7Tpl $oView, $sTable = DbTableName::MEMBER)
     {
         Various::checkModelTable($sTable);
 

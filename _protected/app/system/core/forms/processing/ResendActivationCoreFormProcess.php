@@ -1,16 +1,18 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Core / Form / Processing
  */
 
 namespace PH7;
+
 defined('PH7') or exit('Restricted access');
 
 use PH7\Framework\Mail\Mail;
 use PH7\Framework\Mvc\Router\Uri;
+use stdClass;
 
 /** For "user" and "affiliate" module **/
 class ResendActivationCoreFormProcess extends Form
@@ -22,17 +24,21 @@ class ResendActivationCoreFormProcess extends Form
         $sMail = $this->httpRequest->post('mail');
 
         if (!(new ExistsCoreModel)->email($sMail, $sTable)) {
-            \PFBC\Form::setError('form_resend_activation', t('Oops, this "%0%" is not associated with any %site_name% account. Please, make sure that you entered the e-mail address used in creating your account.', escape(substr($sMail, 0, PH7_MAX_EMAIL_LENGTH))));
+            \PFBC\Form::setError(
+                'form_resend_activation',
+                t('Oops, this "%0%" is not associated with any %site_name% account. Please, make sure that you entered the e-mail address used in creating your account.', escape(substr($sMail, 0, PH7_MAX_EMAIL_LENGTH)))
+            );
         } else {
             if (!$mHash = (new UserCoreModel)->getHashValidation($sMail)) {
                 \PFBC\Form::setError('form_resend_activation', t('Oops! Your account is already activated.'));
             } else {
                 $iRet = $this->sendMail($mHash, $sTable);
 
-                if ($iRet)
+                if ($iRet) {
                     \PFBC\Form::setSuccess('form_resend_activation', t('Your activation link has been emailed to you.'));
-                else
+                } else {
                     \PFBC\Form::setError('form_resend_activation', Form::errorSendingEmail());
+                }
             }
         }
     }
@@ -40,13 +46,14 @@ class ResendActivationCoreFormProcess extends Form
     /**
      * Send the confirmation email.
      *
-     * @param object $oHash User data from the DB.
+     * @param stdClass $oHash User data from the DB.
      * @param string $sTable Table name.
-     * @return integer Number of recipients who were accepted for delivery.
+     *
+     * @return int Number of recipients who were accepted for delivery.
      */
-    protected function sendMail($oHash, $sTable)
+    protected function sendMail(stdClass $oHash, $sTable)
     {
-        $sMod = ($sTable == 'Affiliates') ? 'affiliate' : 'user';
+        $sMod = ($sTable === DbTableName::AFFILIATE) ? 'affiliate' : 'user';
         $sActivateLink = Uri::get($sMod, 'account', 'activate') . PH7_SH . $oHash->email . PH7_SH . $oHash->hashValidation;
 
         $this->view->content = t('Welcome to %site_name%, %0%!', $oHash->firstName) . '<br />' .

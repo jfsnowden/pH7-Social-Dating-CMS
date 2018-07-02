@@ -1,7 +1,7 @@
 <?php
 /**
  * @author           Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright        (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @link             http://ph7cms.com
  * @package          PH7 / Framework / Layout / Form / Engine / PFBC / Element
@@ -16,14 +16,23 @@ class Age extends OptionElement
 {
     const MIN_AGE = 'min_age', MAX_AGE = 'max_age';
 
-    protected $sHtmlOutput, $iMinAge, $iMaxAge;
+    /** @var string */
+    protected $sHtmlOutput;
+
+    /** @var int */
+    protected $iMinAge;
+
+    /** @var int */
+    protected $iMaxAge;
 
     /**
      * Generate the select field for age search.
+     *
+     * @param array|null $aProperties
      */
     public function __construct($aProperties = null)
     {
-        parent::__construct('', '', array(), $aProperties);
+        parent::__construct('', '', [], $aProperties);
 
         $this->iMinAge = DbConfig::getSetting('minAgeRegistration');
         $this->iMaxAge = DbConfig::getSetting('maxAgeRegistration');

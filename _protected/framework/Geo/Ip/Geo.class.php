@@ -3,7 +3,7 @@
  * @title            Ip localization Class
  *
  * @author           Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright        (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / Framework / Geo / Ip
  * @version          1.1
@@ -28,9 +28,9 @@ class Geo
     }
 
     /**
-     * Get the country ISO Code (e.g., en, it, es, ru, fr, ...).
+     * Get the country ISO Code (e.g., GB, IT, ES, RU, FR, ...).
      *
-     * @param string $sIpAddress Specify an IP address. If NULL, it will address the current customer who visits the site
+     * @param string|null $sIpAddress Specify an IP address. If NULL, it will address the current customer who visits the site
      *
      * @return string Country Code.
      */
@@ -42,7 +42,7 @@ class Geo
     /**
      * Get the Zip Code (postal code).
      *
-     * @param string $sIpAddress Specify an IP address. If NULL, it will address the current customer who visits the site
+     * @param string|null $sIpAddress Specify an IP address. If NULL, it will address the current customer who visits the site
      *
      * @return integer Zip Code.
      */
@@ -54,7 +54,7 @@ class Geo
     /**
      * Get the latitude.
      *
-     * @param string $sIpAddress Specify an IP address. If NULL, it will address the current customer who visits the site
+     * @param string|null $sIpAddress Specify an IP address. If NULL, it will address the current customer who visits the site
      *
      * @return float Latitude.
      */
@@ -66,7 +66,7 @@ class Geo
     /**
      * Get the longitude.
      *
-     * @param string $sIpAddress Specify an IP address. If NULL, it will address the current customer who visits the site
+     * @param string|null $sIpAddress Specify an IP address. If NULL, it will address the current customer who visits the site
      *
      * @return float Longitude.
      */
@@ -78,7 +78,7 @@ class Geo
     /**
      * Get the country name.
      *
-     * @param string $sIpAddress Specify an IP address. If NULL, it will address the current customer who visits the site
+     * @param string|null $sIpAddress Specify an IP address. If NULL, it will address the current customer who visits the site
      *
      * @return string Country Name.
      */
@@ -91,7 +91,7 @@ class Geo
     /**
      * Get the city name.
      *
-     * @param string $sIpAddress Specify an IP address. If NULL, it will address the current customer who visits the site
+     * @param string|null $sIpAddress Specify an IP address. If NULL, it will address the current customer who visits the site
      *
      * @return string City Name.
      */
@@ -104,7 +104,7 @@ class Geo
     /**
      * Get the state (region) name.
      *
-     * @param string $sIpAddress Specify an IP address. If NULL, it will address the current customer who visits the site
+     * @param string|null $sIpAddress Specify an IP address. If NULL, it will address the current customer who visits the site
      *
      * @return string State Name.
      */
@@ -116,27 +116,28 @@ class Geo
     /**
      * Get Geo Ip Data Information.
      *
-     * @access protected
-     * @param string $sIpAddress Specify an IP address. If NULL, it will address the current customer who visits the site
+     * @param string|null $sIpAddress Specify an IP address. If NULL, it will address the current customer who visits the site
      *
      * @return string|\GeoIp2\Model\City
      */
     protected static function get($sIpAddress = null)
     {
-        $sIpAddr = (!empty($sIpAddress) ? $sIpAddress : Ip::get());
+        $sIpAddr = ($sIpAddress !== null ? $sIpAddress : Ip::get());
 
-        if ($sIpAddr == '127.0.0.1') {
+        if ($sIpAddr === Ip::DEFAULT_IP) {
             // Set a valid IP address, if it's the invalid local one
             $sIpAddr = self::DEFAULT_VALID_IP;
         }
 
         $oReader = new Reader(__DIR__ . '/GeoLite2-City.mmdb');
+
         return @$oReader->city($sIpAddr);
     }
 
     /**
      * Block cloning.
      */
-    private function __clone() {}
-
+    private function __clone()
+    {
+    }
 }

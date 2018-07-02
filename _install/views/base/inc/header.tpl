@@ -7,7 +7,7 @@
 
         <!-- Begin Title and Meta Info -->
         <title>{$LANG.welcome|upper} «{$software_name|upper}» {$software_version}</title>
-        <link rel="shortcut icon" href="{$smarty.const.PH7_URL_ROOT}favicon.ico" />
+        <link rel="icon" href="{$smarty.const.PH7_URL_ROOT}favicon.ico" />
         <!---- Copyright pH7 Dating/Social CMS; All Rights Reserved ---->
         <meta name="author" content="{$software_author}" />
         <meta name="copyright" content="{$software_copyright}" />
@@ -43,5 +43,13 @@
             <!-- End Header -->
 
             <div class="progress">
-                <div class="progress-bar" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" style="width:{$sept_number*14}%">{$sept_number*12.5}%</div>
+                <div
+                    class="progress-bar progress-bar-striped active"
+                    role="progressbar"
+                    aria-valuenow="60"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                    style="width:{$sept_number*14.3}%"
+                >{$sept_number*14.3}%
+                </div>
             </div>

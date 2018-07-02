@@ -1,7 +1,7 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Affiliate / Form
  */
@@ -21,12 +21,15 @@ class BannerForm
         $oPage = new Page;
         $oAdsModel = new AdsCoreModel;
 
-        $oPage->getTotalPages($oAdsModel->total('AdsAffiliates'), self::ADS_PER_PAGE);
+        $oPage->getTotalPages(
+            $oAdsModel->total(AdsCore::AFFILIATE_AD_TABLE_NAME),
+            self::ADS_PER_PAGE
+        );
         $oAds = $oAdsModel->get(
             null,
             $oPage->getFirstItem(),
             $oPage->getNbItemsPerPage(),
-            'AdsAffiliates'
+            DbTableName::AD_AFFILIATE
         );
         unset($oPage, $oAdsModel);
 
@@ -39,7 +42,7 @@ class BannerForm
             $oForm->addElement(new \PFBC\Element\HTMLExternal('<h2>' . $oRow->name . '</h2>'));
             $oForm->addElement(new \PFBC\Element\HTMLExternal('<p>' . t('Preview Banner:') . '</p>'));
             $oForm->addElement(new \PFBC\Element\HTMLExternal('<div>' . $oSysVar->parse($oRow->code) . '</div>'));
-            $oForm->addElement(new \PFBC\Element\Textarea(t('Banner:'), 'code', array('readonly' => 'readonly', 'onclick' => 'this.select()', 'value' => $oSysVar->parse($oRow->code))));
+            $oForm->addElement(new \PFBC\Element\Textarea(t('Banner:'), 'code', ['readonly' => 'readonly', 'onclick' => 'this.select()', 'value' => $oSysVar->parse($oRow->code)]));
             // End ads div tags
             $oForm->addElement(new \PFBC\Element\HTMLExternal('</div>'));
             $oForm->addElement(new \PFBC\Element\HTMLExternal('<br /><hr /><br />'));

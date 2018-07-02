@@ -1,10 +1,11 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2013-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2013-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / User / Controller
  */
+
 namespace PH7;
 
 use PH7\Framework\Navigation\Page;
@@ -13,7 +14,20 @@ class BirthdayController extends Controller
 {
     const MAX_PROFILE_PER_PAGE = 20;
 
-    private $oBirthModel, $oPage, $sTitle, $sCurrentDate, $iTotalBirths;
+    /** @var BirthdayModel */
+    private $oBirthModel;
+
+    /** @var Page */
+    private $oPage;
+
+    /** @var string */
+    private $sTitle;
+
+    /** @var string */
+    private $sCurrentDate;
+
+    /** @var int */
+    private $iTotalBirths;
 
     public function __construct()
     {
@@ -36,6 +50,11 @@ class BirthdayController extends Controller
         $this->view->meta_keywords = t('birthday,birthdate,anniversary,birth,friend,dating,social networking,profile,social');
     }
 
+    /**
+     * @param string $sGender
+     *
+     * @return void
+     */
     public function index($sGender = BirthdayModel::ALL)
     {
         $this->checkType($sGender);
@@ -52,7 +71,7 @@ class BirthdayController extends Controller
         $this->sTitle = nt('%n% Birthday', '%n% Birthdays', $this->iTotalBirths) . $sHtmlCurrentDate;
         $this->view->page_title = $this->view->h1_title = $this->sTitle;
 
-        if ($sGender != BirthdayModel::ALL) {
+        if ($sGender !== BirthdayModel::ALL) {
             $this->view->h3_title = '<span class="pH0">' . t($sGender) . '</span>';
         }
 
@@ -61,10 +80,14 @@ class BirthdayController extends Controller
         $this->output();
     }
 
-    protected function checkType($sSexType)
+    /**
+     * @param string $sSexType
+     *
+     * @return string|void
+     */
+    private function checkType($sSexType)
     {
-        switch ($sSexType)
-        {
+        switch ($sSexType) {
             case BirthdayModel::ALL:
             case BirthdayModel::COUPLE:
             case BirthdayModel::MALE:

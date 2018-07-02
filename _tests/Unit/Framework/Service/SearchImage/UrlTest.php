@@ -1,7 +1,7 @@
 <?php
 /**
  * @author           Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright        (c) 2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2017-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / Test / Unit / Framework / Service / SearchImage
  */
@@ -16,8 +16,8 @@ class UrlTest extends PHPUnit_Framework_TestCase
     public function testValidValue()
     {
         $sTestUrl = 'https://ph7cms.com/dating-business-by-steps/';
-        $sUrl = new Url($sTestUrl);
-        $this->assertSame($sTestUrl, $sUrl->getValue());
+        $oUrl = new Url($sTestUrl);
+        $this->assertSame($sTestUrl, $oUrl->getValue());
     }
 
     /**

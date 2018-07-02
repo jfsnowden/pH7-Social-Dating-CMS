@@ -1,6 +1,6 @@
 /*
  * Author:        Pierre-Henry Soria <ph7software@gmail.com>
- * Copyright:     (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * Copyright:     (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * License:       GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  */
 
@@ -72,11 +72,11 @@ header, #content {
 }
 
 #headings, .loginas, .noscript {
-    margin-top: 65px;
+    margin-top: 6rem;
 }
 
 .loginas {
-    margin-bottom: -40px;
+    margin-bottom: -6rem;
 }
 
 #content::after {
@@ -171,7 +171,7 @@ hr {
 
 .err_msg {
     text-align: center;
-    color: #F00;
+    color: #d9534f;
     text-transform: uppercase;
 }
 
@@ -190,8 +190,8 @@ label#percent {
 }
 
 .thumb_photo, .s_photo, .m_photo, .m_video {
-    float: left;
-    vertical-align: bottom;
+    display: inline-block;
+    vertical-align: top;
 }
 
 .thumb_photo img, .s_photo img, .m_photo img {
@@ -249,15 +249,11 @@ label#percent {
     margin: 16px;
 }
 
-.user_status img {
+.user_status span {
     position: absolute;
-    width: 12px;
-    height: 12px;
-    margin: 4px;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    box-shadow: none;
+    font-size: 3.5rem;
+    line-height: 1rem;
+    margin: .5rem;
 }
 
 .cy_ico img {
@@ -293,6 +289,7 @@ label#percent {
 }
 
 .picture_block {
+    display: inline-block;
     margin: 10px 8px 10px;
     overflow: hidden;
 }
@@ -300,7 +297,7 @@ label#percent {
 .img_picture {
     height: 200px;
     width: 200px;
-    border-radius: 6px;
+    border-radius: 8px;
     border: 1px #DFDFDF solid;
 }
 
@@ -361,9 +358,9 @@ img, video, iframe {
     .profile_desc {
         float: right;
         max-width: 500px;
-        position: absolute;
         margin-left: 25%;
-        margin-top: -600px;
+        position: absolute;
+        top: 20rem;
     }
 }
 

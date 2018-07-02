@@ -4,7 +4,7 @@
  * @desc           This class is used to manage settings of the web server and can simulate a server secure and reliable.
  *
  * @author         Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / Framework / Server
  */
@@ -15,6 +15,7 @@ defined('PH7') or exit('Restricted access');
 
 use PH7\Framework\Core\Kernel;
 use PH7\Framework\Url\Uri;
+use function PH7\is_internet;
 
 final class Server
 {
@@ -44,6 +45,9 @@ final class Server
     const HTTP_REFERER = 'HTTP_REFERER';
     const HTTP_X_REQUESTED_WITH = 'HTTP_X_REQUESTED_WITH';
 
+    const LOCAL_IP = '127.0.0.1';
+    const LOCAL_HOSTNAME = 'localhost';
+
     public function __construct()
     {
         /*** Copyright ***/
@@ -60,7 +64,6 @@ final class Server
      */
     public static function isWindows()
     {
-
         return 0 === stripos(PHP_OS, 'WIN');
     }
 
@@ -100,16 +103,18 @@ final class Server
     /**
      * Retrieve a member of the $_SERVER super global.
      *
-     * @param string $sKey If NULL, returns the entire $_SERVER variable. Default NULL
-     * @param mixed $sDefVal The value to use if server key is not found. Default NULL
+     * @param string|null $sKey If NULL, returns the entire $_SERVER variable.
+     * @param string|null $sDefVal A default value to use if server key is not found.
      *
      * @return string|array|null
      */
     public static function getVar($sKey = null, $sDefVal = null)
     {
-        if (null === $sKey) return $_SERVER;
+        if (null === $sKey) {
+            return $_SERVER;
+        }
 
-        return (!empty($_SERVER[$sKey])) ? htmlspecialchars($_SERVER[$sKey], ENT_QUOTES) : $sDefVal;
+        return !empty($_SERVER[$sKey]) ? htmlspecialchars($_SERVER[$sKey], ENT_QUOTES) : $sDefVal;
     }
 
     /**
@@ -131,7 +136,8 @@ final class Server
     {
         $sServerName = self::getName();
         $sHttpHost = self::getVar(self::HTTP_HOST);
-        return ($sServerName === 'localhost' || $sServerName === '127.0.0.1' || $sHttpHost === 'localhost' || $sHttpHost === '127.0.0.1');
+
+        return ($sServerName === self::LOCAL_HOSTNAME || $sServerName === self::LOCAL_IP || $sHttpHost === self::LOCAL_HOSTNAME || $sHttpHost === self::LOCAL_IP);
     }
 
     /**
@@ -163,6 +169,6 @@ final class Server
      */
     public static function checkInternetConnection()
     {
-        return \PH7\is_internet();
+        return is_internet();
     }
 }

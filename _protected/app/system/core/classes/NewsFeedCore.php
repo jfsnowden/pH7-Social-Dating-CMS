@@ -3,7 +3,7 @@
  * @title          Retrieve News Feed from a RSS URL.
  *
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2013-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2013-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Core / Class
  * @version        1.0
@@ -12,14 +12,16 @@
 namespace PH7;
 
 use DOMDocument;
+use DOMElement;
 use PH7\Framework\Cache\Cache;
 use PH7\Framework\Error\CException\PH7Exception;
 
 class NewsFeedCore
 {
-    const DEF_NUM_NEWS = 10;
+    const DEFAULT_NUMBER_ITEMS = 10;
     const NEWS_URL = 'http://ph7cms.com/feed/';
     const CACHE_GROUP = 'str/sys/mod/admin';
+    const CACHE_LIFETIME = 3600 * 24;
 
     /** @var DOMDocument */
     private $oXml;
@@ -28,7 +30,7 @@ class NewsFeedCore
     private $oCache;
 
     /** @var array */
-    private $aData = array();
+    private $aData = [];
 
     public function __construct()
     {
@@ -45,16 +47,18 @@ class NewsFeedCore
      *
      * @throws PH7Exception If the Feed URL is not valid.
      */
-    public function getSoftware($iNum = self::DEF_NUM_NEWS)
+    public function getSoftware($iNum = self::DEFAULT_NUMBER_ITEMS)
     {
-        $this->oCache->start(self::CACHE_GROUP, 'software_feed_news' . $iNum, 3600 * 24);
+        $this->oCache->start(self::CACHE_GROUP, 'softwareNewsFeed' . $iNum, self::CACHE_LIFETIME);
 
         if (!$this->aData = $this->oCache->get()) {
             if (!@$this->oXml->load(static::NEWS_URL)) {
-                throw new PH7Exception('Unable to retrieve news feeds for the URL: "' . static::NEWS_URL . '"');
+                throw new PH7Exception('Unable to retrieve news feeds for the URL: ' . static::NEWS_URL);
             }
 
             $iCount = 0;
+
+            /** @var DOMElement $oItem */
             foreach ($this->oXml->getElementsByTagName('item') as $oItem) {
                 $sLink = $oItem->getElementsByTagName('link')->item(0)->nodeValue;
 
@@ -62,9 +66,10 @@ class NewsFeedCore
                 $this->aData[$sLink]['link'] = $sLink;
                 $this->aData[$sLink]['description'] = $oItem->getElementsByTagName('description')->item(0)->nodeValue;
 
-                if (++$iCount === $iNum) break; // If we have the number of news we want, we stop the foreach loop.
+                if (++$iCount === $iNum) {
+                    break; // If we have the number of news wanted, we stop the foreach loop
+                }
             }
-
             $this->oCache->put($this->aData);
         }
 

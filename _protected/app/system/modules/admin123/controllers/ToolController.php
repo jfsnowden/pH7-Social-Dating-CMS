@@ -3,10 +3,9 @@
  * @title          Tool Controller
  *
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Admin / Controller
- * @version        1.1
  */
 
 namespace PH7;
@@ -14,6 +13,7 @@ namespace PH7;
 use PH7\Framework\Cache\Cache;
 use PH7\Framework\Date\CDateTime;
 use PH7\Framework\Layout\Gzip\Gzip;
+use PH7\Framework\Layout\Html\Design;
 use PH7\Framework\Layout\Html\Security as HtmlSecurity;
 use PH7\Framework\Layout\Tpl\Engine\PH7Tpl\PH7Tpl;
 use PH7\Framework\Mvc\Model\Engine\Db;
@@ -24,7 +24,9 @@ use PH7\Framework\Url\Header;
 
 class ToolController extends Controller
 {
-    /** @var  string */
+    const BACKUP_FILE_EXTS = ['.sql', '.gz'];
+
+    /** @var string */
     private $sTitle;
 
     public function index()
@@ -38,12 +40,18 @@ class ToolController extends Controller
 
     public function cache()
     {
-        // Adding a CSRF token for the remove ajax cache.
+        // Add a CSRF token for the remove ajax cache request
         $this->view->csrf_token = (new Token)->generate('cache');
 
-        // Adding the common CSS and JS files for the ajax cache and the chart.
-        $this->design->addCss(PH7_LAYOUT . PH7_SYS . PH7_MOD . $this->registry->module . PH7_SH . PH7_TPL . PH7_TPL_MOD_NAME . PH7_SH . PH7_CSS, 'general.css');
-        $this->design->addJs(PH7_LAYOUT . PH7_SYS . PH7_MOD . $this->registry->module . PH7_SH . PH7_TPL . PH7_TPL_MOD_NAME . PH7_SH . PH7_JS, 'common.js');
+        // Add the common CSS and JS files for the ajax cache and the chart
+        $this->design->addCss(
+            PH7_LAYOUT . PH7_SYS . PH7_MOD . $this->registry->module . PH7_SH . PH7_TPL . PH7_TPL_MOD_NAME . PH7_SH . PH7_CSS,
+            'general.css'
+        );
+        $this->design->addJs(
+            PH7_LAYOUT . PH7_SYS . PH7_MOD . $this->registry->module . PH7_SH . PH7_TPL . PH7_TPL_MOD_NAME . PH7_SH . PH7_JS,
+            'common.js'
+        );
 
         $this->sTitle = t('Caches Management');
         $this->view->page_title = $this->sTitle;
@@ -70,7 +78,7 @@ class ToolController extends Controller
 
     public function freeSpace()
     {
-        // Adding the common CSS for the chart.
+        // Add the module CSS file for the chart
         $this->design->addCss(
             PH7_LAYOUT . PH7_SYS . PH7_MOD . $this->registry->module . PH7_SH . PH7_TPL . PH7_TPL_MOD_NAME . PH7_SH . PH7_CSS,
             'general.css'
@@ -99,15 +107,30 @@ class ToolController extends Controller
         $this->output();
     }
 
+    public function blockCountry()
+    {
+        $this->view->page_title = t('Country Blacklist');
+        $this->view->h1_title = t('Block Countries');
+
+        $this->output();
+    }
+
     public function backup()
     {
+        // Add the module CSS file for backup textarea field size
+        $this->design->addCss(
+            PH7_LAYOUT . PH7_SYS . PH7_MOD . $this->registry->module . PH7_SH . PH7_TPL . PH7_TPL_MOD_NAME . PH7_SH . PH7_CSS,
+            'general.css'
+        );
+
         $this->view->designSecurity = new HtmlSecurity; // Security Design Class
 
         $this->sTitle = t('Backup Management');
         $this->view->page_title = $this->sTitle;
         $this->view->h1_title = $this->sTitle;
 
-        $aDumpList = $this->file->getFileList(PH7_PATH_BACKUP_SQL, array('.sql', '.gz'));
+        $aDumpList = $this->file->getFileList(PH7_PATH_BACKUP_SQL, static::BACKUP_FILE_EXTS);
+
         // Removing the path
         $aDumpList = array_map(function ($sValue) {
             return str_replace(PH7_PATH_BACKUP_SQL, '', $sValue);
@@ -119,10 +142,10 @@ class ToolController extends Controller
 
         if ($this->httpRequest->postExists('backup')) {
             if (!$oSecurityToken->check('backup')) {
-                $this->design->setFlashMsg(Form::errorTokenMsg(), 'error');
+                $this->design->setFlashMsg(Form::errorTokenMsg(), Design::ERROR_TYPE);
             } else {
                 // Clean the site name to avoid bug with the backup path
-                $sSiteName = str_replace(array(' ', '/', '\\'), '_', $this->registry->site_name);
+                $sSiteName = str_replace([' ', '/', '\\'], '_', $this->registry->site_name);
                 $sCurrentDate = (new CDateTime)->get()->date();
 
                 switch ($this->httpRequest->post('backup_type')) {
@@ -151,14 +174,17 @@ class ToolController extends Controller
                         break;
 
                     default:
-                        $this->design->setFlashMsg(t('Please select a field.'), 'error');
+                        $this->design->setFlashMsg(
+                            t('Please select a field.'),
+                            Design::ERROR_TYPE
+                        );
                 }
             }
         }
 
         if ($this->httpRequest->postExists('restore_dump')) {
             if (!$oSecurityToken->check('backup')) {
-                $this->design->setFlashMsg(Form::errorTokenMsg(), 'error');
+                $this->design->setFlashMsg(Form::errorTokenMsg(), Design::ERROR_TYPE);
             } else {
                 $sDumpFile = $this->httpRequest->post('dump_file');
 
@@ -175,14 +201,14 @@ class ToolController extends Controller
                 }
 
                 $sMsg = ($mStatus === true) ? t('Data successfully restored from server!') : $mStatus;
-                $sMsgType = ($mStatus === true) ? 'success' : 'error';
+                $sMsgType = ($mStatus === true) ? Design::SUCCESS_TYPE : Design::ERROR_TYPE;
                 $this->design->setFlashMsg($sMsg, $sMsgType);
             }
         }
 
         if ($this->httpRequest->postExists('remove_dump')) {
             if (!$oSecurityToken->check('backup')) {
-                $this->design->setFlashMsg(Form::errorTokenMsg(), 'error');
+                $this->design->setFlashMsg(Form::errorTokenMsg(), Design::ERROR_TYPE);
             } else {
                 $sDumpFile = $this->httpRequest->post('dump_file');
 
@@ -190,7 +216,10 @@ class ToolController extends Controller
                     $this->file->deleteFile(PH7_PATH_BACKUP_SQL . $sDumpFile);
                     $this->design->setFlashMsg(t('Dump file successfully deleted!'));
                 } else {
-                    $this->design->setFlashMsg(t('Please select a dump file.'), 'error');
+                    $this->design->setFlashMsg(
+                        t('Please select a dump file.'),
+                        Design::ERROR_TYPE
+                    );
                 }
             }
         }
@@ -218,7 +247,7 @@ class ToolController extends Controller
             }
 
             $sMsg = ($mStatus === true) ? t('Data successfully restored from desktop!') : $mStatus;
-            $sMsgType = ($mStatus === true) ? 'success' : 'error';
+            $sMsgType = ($mStatus === true) ? Design::SUCCESS_TYPE : Design::ERROR_TYPE;
             $this->design->setFlashMsg($sMsg, $sMsgType);
         }
 
@@ -230,7 +259,10 @@ class ToolController extends Controller
         $this->checkPost();
 
         Db::optimize();
-        Header::redirect(Uri::get(PH7_ADMIN_MOD, 'tool', 'index'), t('All tables have been optimized!'));
+        Header::redirect(
+            Uri::get(PH7_ADMIN_MOD, 'tool', 'index'),
+            t('All tables have been optimized!')
+        );
     }
 
     public function repair()
@@ -238,7 +270,10 @@ class ToolController extends Controller
         $this->checkPost();
 
         Db::repair();
-        Header::redirect(Uri::get(PH7_ADMIN_MOD, 'tool', 'index'), t('All tables have been repaired!'));
+        Header::redirect(
+            Uri::get(PH7_ADMIN_MOD, 'tool', 'index'),
+            t('All tables have been repaired!')
+        );
     }
 
     /**
@@ -256,7 +291,7 @@ class ToolController extends Controller
     /**
      * Checks if the request been made ​​by the post method.
      *
-     * @return boolean
+     * @return bool
      */
     private function isPost()
     {

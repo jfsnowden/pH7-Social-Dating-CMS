@@ -3,7 +3,7 @@
  * @title          Add Users; Process Class
  *
  * @author         Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Admin / From / Processing
  */
@@ -50,6 +50,9 @@ class AddUserFormProcess extends Form
             (new UserCore)->setAvatar($iProfileId, $aData['username'], $_FILES['avatar']['tmp_name'], 1);
         }
 
-        Header::redirect(Uri::get(PH7_ADMIN_MOD, 'user', 'browse'), t('User successfully added.'));
+        Header::redirect(
+            Uri::get(PH7_ADMIN_MOD, 'user', 'browse'),
+            t('User successfully added.')
+        );
     }
 }

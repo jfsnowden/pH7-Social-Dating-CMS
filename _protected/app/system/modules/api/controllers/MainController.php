@@ -1,7 +1,7 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright      (c) 2015-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2015-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Api / Controller
  * @link           http://ph7cms.com
@@ -10,11 +10,14 @@
 
 namespace PH7;
 
+use PH7\Framework\Api\AllowCors;
+use PH7\Framework\Api\Api;
 use PH7\Framework\Http\Rest\Rest;
+use PH7\Framework\Mvc\Request\Http as HttpRequest;
 
 class MainController extends Controller
 {
-    use Framework\Api\Api; // Import the Api Trait
+    use Api; // Import the Api Trait
 
     /** @var Rest */
     protected $oRest;
@@ -24,6 +27,7 @@ class MainController extends Controller
         parent::__construct();
 
         $this->oRest = new Rest;
+        $this->setCorsHeaders();
     }
 
     /**
@@ -33,10 +37,17 @@ class MainController extends Controller
      */
     public function test()
     {
-        if ($this->oRest->getRequestMethod() != 'POST') {
+        if ($this->oRest->getRequestMethod() !== HttpRequest::METHOD_POST) {
             $this->oRest->response('', 406);
         } else {
-            $this->oRest->response($this->set(array('return' => 'It Works!')));
+            $this->oRest->response($this->set(['return' => 'It Works!']));
         }
+    }
+
+    private function setCorsHeaders()
+    {
+        $oCors = new AllowCors();
+        $oCors->init();
+        unset($oCors);
     }
 }

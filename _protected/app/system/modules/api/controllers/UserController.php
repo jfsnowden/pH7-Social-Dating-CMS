@@ -1,7 +1,7 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright      (c) 2015-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2015-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Api / Controller
  * @link           http://ph7cms.com
@@ -10,6 +10,7 @@
 
 namespace PH7;
 
+use PH7\Framework\Date\CDateTime;
 use PH7\Framework\Mvc\Model\DbConfig;
 use PH7\Framework\Mvc\Model\Security as SecurityModel;
 use PH7\Framework\Mvc\Request\Http as HttpRequest;
@@ -40,7 +41,7 @@ class UserController extends MainController
         if ($this->oRest->getRequestMethod() !== HttpRequest::METHOD_POST) {
             $this->oRest->response('', 406);
         } else {
-            $aRequests = $this->oRest->getRequest();
+            $aData = json_decode($this->oRest->getBody(), true);
 
             // Set the User Setting variables
             $iMinUsr = DbConfig::getSetting('minUsernameLength');
@@ -50,49 +51,62 @@ class UserController extends MainController
             $iMinAge = DbConfig::getSetting('minAgeRegistration');
             $iMaxAge = DbConfig::getSetting('maxAgeRegistration');
 
-            if (
-                empty($aRequests['email']) || empty($aRequests['username']) || empty($aRequests['password']) ||
-                empty($aRequests['first_name']) || empty($aRequests['last_name']) || empty($aRequests['sex']) ||
-                empty($aRequests['match_sex']) || empty($aRequests['birth_date']) || empty($aRequests['country']) ||
-                empty($aRequests['city']) || empty($aRequests['state']) || empty($aRequests['zip_code']) || empty($aRequests['description'])
-            ) {
+            $sBirthDate = (new CDateTime)->get($aData['birth_date'])->date('m/d/Y');
+
+            $aRequiredFields = [
+                'email',
+                'username',
+                'password',
+                'first_name',
+                'last_name',
+                'sex',
+                'match_sex',
+                'birth_date',
+                'country',
+                'city',
+                'state',
+                'zip_code',
+                'description'
+            ];
+            if (!$this->areFieldsExist($aData, $aRequiredFields)) {
                 $aResults = ['status' => 'failed', 'msg' => t('One or several profile fields are empty.')];
                 $this->oRest->response($this->set($aResults), 400);
-            } elseif (!$this->oValidate->email($aRequests['email'])) {
+            } elseif (!$this->oValidate->email($aData['email'])) {
                 $aResults = ['status' => 'form_error', 'msg' => t('The Email is not valid.')];
                 $this->oRest->response($this->set($aResults), 400);
-            } elseif (!$this->oValidate->username($aRequests['username'], $iMinUsr, $iMaxUsr)) {
+            } elseif (!$this->oValidate->username($aData['username'], $iMinUsr, $iMaxUsr)) {
                 $aResults = ['status' => 'form_error', 'msg' => t('The Username must contain from %0% to %1% characters, the Username is not available or it is already used by other member.', $iMinUsr, $iMaxUsr)];
                 $this->oRest->response($this->set($aResults), 400);
-            } elseif (!$this->oValidate->password($aRequests['password'], $iMinPwd, $iMaxPwd)) {
+            } elseif (!$this->oValidate->password($aData['password'], $iMinPwd, $iMaxPwd)) {
                 $aResults = ['status' => 'form_error', 'msg' => t('The Password must contain from %0% to %1% characters.', $iMinPwd, $iMaxPwd)];
                 $this->oRest->response($this->set($aResults), 400);
-            } elseif (!$this->oValidate->birthDate($aRequests['birth_date'], $iMinAge, $iMaxAge)) {
+            } elseif (!$this->oValidate->birthDate($sBirthDate, $iMinAge, $iMaxAge)) {
                 $aResults = ['status' => 'form_error', 'msg' => t('You must be %0% to %1% years to register on the site.', $iMinAge, $iMinAge)];
                 $this->oRest->response($this->set($aResults), 400);
             } else {
-                $aData = [
-                    'email' => $aRequests['email'],
-                    'username' => $aRequests['username'],
-                    'password' => $aRequests['password'],
-                    'first_name' => $aRequests['first_name'],
-                    'last_name' =>  $aRequests['last_name'],
-                    'sex' => $aRequests['sex'],
-                    'match_sex' => is_array($aRequests['match_sex']) ?: array($aRequests['match_sex']), // PHP 5.3 short ternary operator "?:"
-                    'birth_date' => $this->dateTime->get($aRequests['birth_date'])->date('Y-m-d'),
-                    'country' => $aRequests['country'],
-                    'city' => $aRequests['city'],
-                    'state' => $aRequests['state'],
-                    'zip_code' => $aRequests['zip_code'],
-                    'description' => $aRequests['description'],
+                $aValidData = [
+                    'email' => $aData['email'],
+                    'username' => $aData['username'],
+                    'password' => $aData['password'],
+                    'first_name' => $aData['first_name'],
+                    'last_name' => $aData['last_name'],
+                    'sex' => $aData['sex'],
+                    'match_sex' => is_array($aData['match_sex']) ?: [$aData['match_sex']], // PHP 5.3 short ternary operator "?:"
+                    'birth_date' => $this->dateTime->get($aData['birth_date'])->date('Y-m-d'),
+                    'country' => $aData['country'],
+                    'city' => $aData['city'],
+                    'state' => $aData['state'],
+                    'zip_code' => $aData['zip_code'],
+                    'description' => $aData['description'],
                     'ip' => Framework\Ip\Ip::get(),
                 ];
+                $iUserId = $this->oUserModel->add(escape($aValidData, true));
 
                 // Add 'profile_id' key into the array
-                $aData['profile_id'] = $this->oUserModel->add($aData);
+                $aValidData['profile_id'] = $iUserId;
 
                 // Display the new user's details and ID
-                $this->oRest->response($this->set($aData));
+                $this->oRest->response($this->set($aValidData));
             }
         }
     }
@@ -102,20 +116,20 @@ class UserController extends MainController
         if ($this->oRest->getRequestMethod() !== HttpRequest::METHOD_POST) {
             $this->oRest->response('', 406);
         } else {
-            $aRequests = $this->oRest->getRequest();
+            $aData = json_decode($this->oRest->getBody(), true);
 
-            if (empty($aRequests['email']) || empty($aRequests['password'])) {
+            if (empty($aData['email']) || empty($aData['password'])) {
                 $aResults = ['status' => 'failed', 'msg' => t('The Email and/or the password is empty.')];
                 $this->oRest->response($this->set([$aResults]), 400);
             } // Check Login
-            elseif ($this->oUserModel->login($aRequests['email'], $aRequests['password']) === true) {
-                $iId = $this->oUserModel->getId($aRequests['email']);
+            elseif ($this->oUserModel->login($aData['email'], $aData['password']) === true) {
+                $iId = $this->oUserModel->getId($aData['email']);
                 $oUserData = $this->oUserModel->readProfile($iId);
                 $this->oUser->setAuth($oUserData, $this->oUserModel, $this->session, new SecurityModel);
 
-                $this->oRest->response($this->set($aRequests));
+                $this->oRest->response($this->set($aData));
             } else {
-                $aResults = ['status' => 'failed', 'msg' => t('The Password or Email was incorrected')];
+                $aResults = ['status' => 'failed', 'msg' => t('The Password or Email was incorrected.')];
                 $this->oRest->response($this->set($aResults), 400);
             }
         }
@@ -156,7 +170,7 @@ class UserController extends MainController
      * @param int $iOffset
      * @param int $iLimit
      *
-     * @return stdClass Data of users
+     * @return void
      */
     public function users($sOrder = SearchCoreModel::LAST_ACTIVITY, $iOffset = null, $iLimit = null)
     {
@@ -183,7 +197,7 @@ class UserController extends MainController
      * @param int $iOffset
      * @param int $iLimit
      *
-     * @return stdClass Data of users
+     * @return void
      */
     public function usersFromLocation($sCountryCode, $sCity, $sOrder = SearchCoreModel::LAST_ACTIVITY, $iOffset = null, $iLimit = null)
     {
@@ -195,9 +209,26 @@ class UserController extends MainController
             if (!empty($oUsers)) {
                 $this->oRest->response($this->set([$oUsers]));
             } else {
-                $aResults = ['status' => 'failed', 'msg' => t('No profiles found in %0%, %1%', $sCity, $sCountry)];
+                $aResults = ['status' => 'failed', 'msg' => t('No profiles found in %1%, %0%', $sCity, $sCountryCode)];
                 $this->oRest->response($this->set($aResults), 404);
             }
         }
+    }
+
+    /**
+     * @param array $aData
+     * @param array $aRequiredElements
+     *
+     * @return bool
+     */
+    private function areFieldsExist(array $aData, array $aRequiredElements)
+    {
+        foreach ($aRequiredElements as $sName) {
+            if (empty($aData[$sName])) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

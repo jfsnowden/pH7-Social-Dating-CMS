@@ -1,13 +1,14 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Admin / Inc / Model
  */
 
 namespace PH7;
 
+use PH7\Framework\Date\CDateTime;
 use PH7\Framework\Mvc\Model\Engine\Db;
 use PH7\Framework\Security\Security;
 
@@ -20,12 +21,12 @@ class AdminModel extends AdminCoreModel
      * @param string $sUsername
      * @param string $sPassword
      *
-     * @return boolean Returns TRUE if successful otherwise FALSE
+     * @return bool Returns TRUE if successful otherwise FALSE
      */
     public function adminLogin($sEmail, $sUsername, $sPassword)
     {
         $rStmt = Db::getInstance()->prepare('SELECT password FROM' .
-            Db::prefix('Admins') . 'WHERE email = :email AND username = :username LIMIT 1');
+            Db::prefix(DbTableName::ADMIN) . 'WHERE email = :email AND username = :username LIMIT 1');
         $rStmt->bindValue(':email', $sEmail, \PDO::PARAM_STR);
         $rStmt->bindValue(':username', $sUsername, \PDO::PARAM_STR);
         $rStmt->execute();
@@ -40,13 +41,13 @@ class AdminModel extends AdminCoreModel
      *
      * @param array $aData
      *
-     * @return integer The ID of the Admin.
+     * @return int The ID of the Admin.
      */
     public function add(array $aData)
     {
-        $sCurrentDate = (new Framework\Date\CDateTime)->get()->dateTime('Y-m-d H:i:s');
+        $sCurrentDate = (new CDateTime)->get()->dateTime('Y-m-d H:i:s');
 
-        $rStmt = Db::getInstance()->prepare('INSERT INTO' . Db::prefix('Admins') .
+        $rStmt = Db::getInstance()->prepare('INSERT INTO' . Db::prefix(DbTableName::ADMIN) .
             '(email, username, password, firstName, lastName, sex, timeZone, ip, joinDate, lastActivity)
         VALUES (:email, :username, :password, :firstName, :lastName, :sex, :timeZone, :ip, :joinDate, :lastActivity)');
         $rStmt->bindValue(':email', $aData['email'], \PDO::PARAM_STR);
@@ -61,13 +62,14 @@ class AdminModel extends AdminCoreModel
         $rStmt->bindValue(':lastActivity', $sCurrentDate, \PDO::PARAM_STR);
         $rStmt->execute();
         Db::free($rStmt);
+
         return Db::getInstance()->lastInsertId();
     }
 
     /**
      * Delete Admin.
      *
-     * @param integer $iProfileId
+     * @param int $iProfileId
      * @param string $sUsername
      *
      * @return void
@@ -81,19 +83,19 @@ class AdminModel extends AdminCoreModel
         }
 
         $oDb = Db::getInstance();
-        $oDb->exec('DELETE FROM' . Db::prefix('Admins') . 'WHERE profileId = ' . $iProfileId . ' LIMIT 1');
+        $oDb->exec('DELETE FROM' . Db::prefix(DbTableName::ADMIN) . 'WHERE profileId = ' . $iProfileId . ' LIMIT 1');
         unset($oDb);
     }
 
     /**
-     * @param integer|string $mLooking
-     * @param boolean $bCount
+     * @param int|string $mLooking
+     * @param bool $bCount
      * @param string $sOrderBy
      * @param string $iSort
-     * @param integer $iOffset
-     * @param integer $iLimit
+     * @param int $iOffset
+     * @param int $iLimit
      *
-     * @return integer|object
+     * @return int|array
      */
     public function searchAdmin($mLooking, $bCount, $sOrderBy, $iSort, $iOffset, $iLimit)
     {
@@ -113,7 +115,7 @@ class AdminModel extends AdminCoreModel
 
         $sSqlOrder = SearchCoreModel::order($sOrderBy, $iSort);
 
-        $rStmt = Db::getInstance()->prepare('SELECT ' . $sSqlSelect . ' FROM' . Db::prefix('Admins') . $sSqlWhere . $sSqlOrder . $sSqlLimit);
+        $rStmt = Db::getInstance()->prepare('SELECT ' . $sSqlSelect . ' FROM' . Db::prefix(DbTableName::ADMIN) . $sSqlWhere . $sSqlOrder . $sSqlLimit);
 
         (ctype_digit($mLooking)) ? $rStmt->bindValue(':looking', $mLooking, \PDO::PARAM_INT) : $rStmt->bindValue(':looking', '%' . $mLooking . '%', \PDO::PARAM_STR);
 
@@ -143,10 +145,10 @@ class AdminModel extends AdminCoreModel
      * @param string $sCode
      * @param string $sType Choose between 'css' and 'js'
      *
-     * @return integer|boolean Returns the number of rows on success or FALSE on failure
+     * @return int|bool Returns the number of rows on success or FALSE on failure
      */
     public function updateCustomCode($sCode, $sType)
     {
-        return $this->orm->update('CustomCode', 'code', $sCode, 'codeType', $sType);
+        return $this->orm->update(DbTableName::CUSTOM_CODE, 'code', $sCode, 'codeType', $sType);
     }
 }

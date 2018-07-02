@@ -4,7 +4,7 @@
  * @desc             Handler Cookie
  *
  * @author           Pierre-Henry Soria <ph7software@gmail.com>
- * @copyright        (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright        (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license          GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package          PH7 / Framework / Cookie
  */
@@ -22,16 +22,16 @@ class Cookie
      * Set a PHP cookie.
      *
      * @param array|string $mName Name of the cookie.
-     * @param string $sValue value of the cookie, Optional if the cookie data is in a array.
-     * @param int $iTime The time the cookie expires. This is a Unix timestamp.
-     * @param bool $bSecure If TRUE cookie will only be sent over a secure HTTPS connection from the client.
+     * @param string|null $sValue value of the cookie, Optional if the cookie data is in a array.
+     * @param int|null $iTime The time the cookie expires. This is a Unix timestamp.
+     * @param bool|null $bSecure If TRUE cookie will only be sent over a secure HTTPS connection from the client.
      *
      * @return void
      */
     public function set($mName, $sValue = null, $iTime = null, $bSecure = null)
     {
         $iTime = time() + ((int)!empty($iTime) ? $iTime : Config::getInstance()->values['cookie']['expiration']);
-        $bSecure = (!empty($bSecure) && is_bool($bSecure)) ? $bSecure : (substr(PH7_URL_PROT, 0, 5) === 'https');
+        $bSecure = !empty($bSecure) && is_bool($bSecure) ? $bSecure : (substr(PH7_URL_PROT, 0, 5) === 'https');
 
         if (is_array($mName)) {
             foreach ($mName as $sName => $sVal) {
@@ -53,13 +53,14 @@ class Cookie
      * Get the cookie value by giving its name.
      *
      * @param string $sName Name of the cookie.
-     * @param boolean $bEscape Default TRUE
+     * @param bool|null $bEscape
      *
      * @return string If the cookie exists, returns the cookie with function escape() (htmlspecialchars) if escape is enabled. Empty string value if the cookie doesn't exist.
      */
     public function get($sName, $bEscape = true)
     {
         $sCookieName = Config::getInstance()->values['cookie']['prefix'] . $sName;
+
         return (isset($_COOKIE[$sCookieName]) ? ($bEscape ? escape($_COOKIE[$sCookieName]) : $_COOKIE[$sCookieName]) : '');
     }
 
@@ -68,7 +69,7 @@ class Cookie
      *
      * @param array|string $mName Name of the cookie.
      *
-     * @return boolean
+     * @return bool
      */
     public function exists($mName)
     {
@@ -103,11 +104,13 @@ class Cookie
         } else {
             $sCookieName = Config::getInstance()->values['cookie']['prefix'] . $mName;
 
-            // We put the cookie in a table so if the cookie is in the form of multi-dimensional array, it is clear how much is destroyed
+            // We put the cookie into an array. So, if the cookie is in a multi-dimensional arrays, it is clear how much is destroyed
             $_COOKIE[$sCookieName] = array();
-            // We are asking the browser to delete the cookie
+
+            // We ask the browser to delete the cookie
             setcookie($sCookieName, 0, 0);
-            // and we delete the cookie value locally to avoid using it by mistake in following our script
+
+            // then, we delete the cookie value locally to avoid using it by mistake in following our script
             unset($_COOKIE[$sCookieName]);
         }
     }

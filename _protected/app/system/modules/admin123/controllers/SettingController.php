@@ -1,15 +1,19 @@
 <?php
 /**
  * @author         Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @package        PH7 / App / System / Module / Admin / Controller
  */
 
 namespace PH7;
 
+use PH7\Framework\Layout\Html\Design;
+use PH7\Framework\Mvc\Model\DbConfig;
 use PH7\Framework\Mvc\Router\Uri;
 use PH7\Framework\Navigation\Page;
+use PH7\Framework\Security\CSRF\Token as SecurityToken;
+use PH7\Framework\Translate\Lang;
 use PH7\Framework\Url\Header;
 
 class SettingController extends Controller
@@ -18,16 +22,40 @@ class SettingController extends Controller
 
     public function index()
     {
-        Header::redirect(Uri::get(PH7_ADMIN_MOD, 'setting', 'general'));
+        Header::redirect(
+            Uri::get(PH7_ADMIN_MOD, 'setting', 'general')
+        );
     }
 
     public function general()
     {
         // Add Css Style for Tabs
-        $this->design->addCss(PH7_LAYOUT . PH7_TPL . PH7_TPL_NAME . PH7_SH . PH7_CSS, 'tabs.css');
+        $this->design->addCss(
+            PH7_LAYOUT . PH7_TPL . PH7_TPL_NAME . PH7_SH . PH7_CSS,
+            'tabs.css'
+        );
 
         $this->view->page_title = $this->view->h1_title = t('General Settings');
         $this->output();
+    }
+
+    public function resetColor()
+    {
+        if ((new SecurityToken)->checkUrl()) {
+            $this->resetColorFields();
+
+            $sMsg = t('Colors successfully reset!');
+            $sMsgType = Design::SUCCESS_TYPE;
+        } else {
+            $sMsg = Form::errorTokenMsg();
+            $sMsgType = Design::ERROR_TYPE;
+        }
+
+        Header::redirect(
+            Uri::get(PH7_ADMIN_MOD, 'setting', 'general') . '#p=design',
+            $sMsg,
+            $sMsgType
+        );
     }
 
     public function ads()
@@ -41,7 +69,10 @@ class SettingController extends Controller
         unset($oPage, $sTable);
 
         // Add JS file for the ads form
-        $this->design->addJs(PH7_LAYOUT . PH7_SYS . PH7_MOD . $this->registry->module . PH7_SH . PH7_TPL . PH7_TPL_MOD_NAME . PH7_SH . PH7_JS, 'common.js');
+        $this->design->addJs(
+            PH7_LAYOUT . PH7_SYS . PH7_MOD . $this->registry->module . PH7_SH . PH7_TPL . PH7_TPL_MOD_NAME . PH7_SH . PH7_JS,
+            'common.js'
+        );
 
         $this->view->page_title = $this->view->h1_title = t('Banner Settings');
         $this->view->h4_title = nt('%n% Banner', '%n% Banners', $iTotalAds);
@@ -80,59 +111,51 @@ class SettingController extends Controller
 
         $this->view->page_title = $this->view->h1_title = t('Meta Tags - Settings');
 
-        $aLangs = $this->file->getDirList(PH7_PATH_APP_LANG);
-        if (!in_array(substr($this->httpRequest->currentUrl(), -5), $aLangs)) {
-            Header::redirect(Uri::get(PH7_ADMIN_MOD, 'setting', 'metamain', PH7_LANG_NAME, false));
+        if ($this->langNameFromUrlDoesNotExist()) {
+            Header::redirect(
+                Uri::get(
+                    PH7_ADMIN_MOD,
+                    'setting',
+                    'metamain',
+                    PH7_LANG_NAME,
+                    false
+                )
+            );
         }
-        unset($aLangs);
 
         $this->output();
     }
 
-    public function license()
+    private function resetColorFields()
     {
-        $this->view->page_title = $this->view->h1_title = t('License Key');
+        $aColorFields = [
+            'backgroundColor',
+            'textColor',
+            'linkColor',
+            'footerLinkColor',
+            'linkHoverColor'
+        ];
 
-        if ($this->httpRequest->getExists('set_msg')) {
-            $aData = $this->_getLicStatusMsg();
-            $this->design->setFlashMsg($aData['msg'], ($aData['is_err'] ? 'error' : 'success'));
+        foreach ($aColorFields as $sFieldName) {
+            DbConfig::setSetting('', $sFieldName);
         }
 
-        $this->output();
+        DbConfig::clearCache();
     }
 
     /**
-     * Get the status and the message for the license key.
+     * Check if the locale language name (eg "en_US") specified in the URL path exists in pH7CMS.
      *
-     * @access private
-     * @return array ['is_err' => BOOLEAN, 'msg' => STRING];
+     * @return bool
      */
-    private function _getLicStatusMsg()
+    private function langNameFromUrlDoesNotExist()
     {
-        $bIsErr = true; // Set default value
+        $aLangs = $this->file->getDirList(PH7_PATH_APP_LANG);
 
-        switch (PH7_LICENSE_STATUS) {
-            case 'active':
-                $sMsg = t('Hurrah! Your License Key has been successfully enabled!');
-                $bIsErr = false;
-                break;
-
-            case 'invalid':
-                $sMsg = t('Oops! Your license key is Invalid.');
-                break;
-
-            case 'expired':
-                $sMsg = t('Oops! Your license key is Expired.');
-                break;
-
-            case 'suspended':
-                $sMsg = t('We are sorry, but your license key is Suspended.');
-                break;
-
-            default:
-                $sMsg = t('Oops! We have received an invalid response from the server. Please try again later.');
-        }
-
-        return ['is_err' => $bIsErr, 'msg' => $sMsg];
+        return !in_array(
+            substr($this->httpRequest->currentUrl(), -Lang::LANG_FOLDER_LENGTH),
+            $aLangs,
+            true
+        );
     }
 }

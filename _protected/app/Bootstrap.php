@@ -1,21 +1,20 @@
 <?php
 /**
- * @title          Bootstrap
- *
  * @author         Pierre-Henry Soria <hello@ph7cms.com>
- * @copyright      (c) 2012-2017, Pierre-Henry Soria. All Rights Reserved.
+ * @copyright      (c) 2012-2018, Pierre-Henry Soria. All Rights Reserved.
  * @license        GNU General Public License; See PH7.LICENSE.txt and PH7.COPYRIGHT.txt in the root directory.
  * @link           http://ph7cms.com
  * @package        PH7 / App / Core
- * @version        2.0
  */
 
 namespace PH7;
 
 defined('PH7') or exit('Restricted access');
 
+use Exception;
 use PH7\App\Includes\Classes\Loader\Autoloader as AppLoader;
 use PH7\Framework\Config\Config;
+use PH7\Framework\Config\FileNotFoundException;
 use PH7\Framework\Core\Kernel;
 use PH7\Framework\Error\CException as Except;
 use PH7\Framework\File\Import;
@@ -23,6 +22,7 @@ use PH7\Framework\Loader\Autoloader as FrameworkLoader;
 use PH7\Framework\Mvc\Router\FrontController;
 use PH7\Framework\Navigation\Browser;
 use PH7\Framework\Registry\Registry;
+use PH7\Framework\Server\Environment as Env;
 use PH7\Framework\Server\Server;
 
 /*** Begin Loading Files ***/
@@ -65,29 +65,14 @@ class Bootstrap
     }
 
     /**
-     * zlib-compressed output.
-     *
-     * These "zlib output compression" compress the pages.
-     * It save your bandwidth and gives faster download of the pages.
-     * WARNING: It can consume high CPU resources on the server.
-     * So it might be wise not to use this method if the server isn't so powerful.
-     *
-     * @return void
-     */
-    public function zlipCompression()
-    {
-        ini_set('zlib.output_compression', 2048);
-        ini_set('zlib.output_compression_level', 6);
-    }
-
-    /**
      * Initialize the app, load the files and launch the main FrontController router.
      *
      * @return void
      *
-     * @throws Except\UserException
+     * @throws Exception
      * @throws Except\PH7Exception
-     * @throws \Exception
+     * @throws Except\UserException
+     * @throws FileNotFoundException
      */
     public function run()
     {
@@ -106,21 +91,23 @@ class Bootstrap
             new Server; // Start Server
 
             $this->startPageBenchmark();
+            //Framework\Compress\Compress::setZlipCompression();
 
-            /**
-             * Initialize the FrontController, we are asking the front controller to process the HTTP request
-             */
+            // Initialize the FrontController, we are asking the front controller to process the HTTP request
             FrontController::getInstance()->runRouter();
+        /**  TODO: When pH7CMS will support PHP 7.1
+        } catch (FileNotFoundException | Except\UserException $oE) {
+        //*/
+        } catch (FileNotFoundException $oE) {
+            echo $oE->getMessage();
         } catch (Except\UserException $oE) {
             echo $oE->getMessage(); // Simple User Error with Exception
         } catch (Except\PH7Exception $oE) {
             Except\PH7Exception::launch($oE);
-        } catch (\Exception $oE) {
+        } catch (Exception $oE) {
             Except\PH7Exception::launch($oE);
         } finally {
-            if (session_status() === PHP_SESSION_ACTIVE) {
-                session_write_close();
-            }
+            $this->closeAppSession();
         }
     }
 
@@ -131,7 +118,7 @@ class Bootstrap
      */
     private function loadInitFiles()
     {
-        // Loading Framework Classes
+        // Load Framework Classes
         require PH7_PATH_FRAMEWORK . 'Loader/Autoloader.php';
         FrameworkLoader::getInstance()->init();
 
@@ -139,16 +126,16 @@ class Bootstrap
         // For All environment
         Import::file(PH7_PATH_APP . 'configs/environment/all.env');
         // Specific to the current environment
-        Import::file(PH7_PATH_APP . 'configs/environment/' . Config::getInstance()->values['mode']['environment'] . '.env');
+        Import::file(PH7_PATH_APP . 'configs/environment/' . Env::getFileName(Config::getInstance()->values['mode']['environment']));
 
-        // Loading Class ~/protected/app/includes/classes/*
+        // Load Class ~/protected/app/includes/classes/*
         Import::pH7App('includes.classes.Loader.Autoloader');
         AppLoader::getInstance()->init();
 
-        // Loading Debug class
+        // Load Debug class
         Import::pH7FwkClass('Error.Debug');
 
-        // Loading String Class
+        // Load String Class
         Import::pH7FwkClass('Str.Str');
 
         /* Structure/General.class.php functions are not currently used */
@@ -163,6 +150,18 @@ class Bootstrap
     private function startPageBenchmark()
     {
         Registry::getInstance()->start_time = microtime(true);
+    }
+
+    /**
+     * If sessions status are enabled, writes session data and ends session.
+     *
+     * @return void
+     */
+    private function closeAppSession()
+    {
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
     }
 
     /**
